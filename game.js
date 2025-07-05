@@ -24,7 +24,7 @@ class FrogBasketballGame {
         this.menuButtons = {
             normal: {
                 x: 0, // Will be calculated
-                y: 300,
+                y: 280,
                 width: 200,
                 height: 60,
                 text: 'Normal',
@@ -32,10 +32,18 @@ class FrogBasketballGame {
             },
             hardcore: {
                 x: 0, // Will be calculated
-                y: 380,
+                y: 360,
                 width: 200,
                 height: 60,
                 text: 'Hardcore',
+                hover: false
+            },
+            customize: {
+                x: 0, // Will be calculated
+                y: 440,
+                width: 200,
+                height: 60,
+                text: 'Customize',
                 hover: false
             }
         };
@@ -101,6 +109,23 @@ class FrogBasketballGame {
         this.lockedAngle = 0; // 锁定的角度
         this.maxPowerDistance = 100; // 力度指示器最大距离
         
+        // 外观预设数据
+        this.appearancePresets = {
+            heads: [
+                { name: "经典", skinColor: "#FFDBAC", hairColor: "#3A2A1A", hairStyle: "classic" },
+                { name: "金发", skinColor: "#FFDBAC", hairColor: "#FFD700", hairStyle: "spiky" },
+                { name: "深色", skinColor: "#8B4513", hairColor: "#000000", hairStyle: "curly" },
+                { name: "白皮", skinColor: "#FFEAA7", hairColor: "#FFFFFF", hairStyle: "long" }
+            ],
+            jerseys: [
+                { name: "经典蓝", color1: "#00529B", color2: "#FFD700" },
+                { name: "火焰红", color1: "#FF4444", color2: "#FF8888" },
+                { name: "森林绿", color1: "#228B22", color2: "#90EE90" },
+                { name: "紫罗兰", color1: "#8A2BE2", color2: "#DDA0DD" }
+            ],
+            numbers: ["1", "23", "88", "99", "7", "11", "33", "77"]
+        };
+
         // 玩家设置
         this.player = {
             x: this.width / 2,
@@ -111,9 +136,16 @@ class FrogBasketballGame {
             animFrame: 0,
             animSpeed: 8,
             dribbling: true,
-            jerseyNumber: '1', // 玩家球衣号码
-            bodyColor1: '#00529B', // 玩家球衣主色
-            bodyColor2: '#FFD700'  // 玩家球衣辅色
+            // 外观属性
+            appearance: {
+                headIndex: 0,
+                jerseyIndex: 0,
+                numberIndex: 0
+            },
+            // 保持向后兼容的旧属性
+            jerseyNumber: '1',
+            bodyColor1: '#00529B',
+            bodyColor2: '#FFD700'
         };
         
         // 篮筐设置
@@ -173,9 +205,56 @@ class FrogBasketballGame {
         this.keys = {};
         this.setupControls();
         
+        // 换装界面数据
+        this.customization = {
+            selectedCategory: 'head', // 'head', 'jersey', 'number'
+            selectedIndices: {
+                head: 0,
+                jersey: 0,
+                number: 0
+            },
+            previewPlayer: null
+        };
+
+        // 换装界面按钮
+        this.customizationButtons = {
+            head: {
+                x: 50, y: 150, width: 120, height: 40,
+                text: 'Head', hover: false, active: true
+            },
+            jersey: {
+                x: 180, y: 150, width: 120, height: 40,
+                text: 'Jersey', hover: false, active: false
+            },
+            number: {
+                x: 310, y: 150, width: 120, height: 40,
+                text: 'Number', hover: false, active: false
+            },
+            prev: {
+                x: 150, y: 250, width: 80, height: 40,
+                text: '< Prev', hover: false
+            },
+            next: {
+                x: 250, y: 250, width: 80, height: 40,
+                text: 'Next >', hover: false
+            },
+            apply: {
+                x: 150, y: 450, width: 100, height: 50,
+                text: 'Apply', hover: false
+            },
+            cancel: {
+                x: 270, y: 450, width: 100, height: 50,
+                text: 'Cancel', hover: false
+            }
+        };
+
+        // 从本地存储加载外观设置
+        this.loadAppearanceFromStorage();
+
         // 计算菜单按钮位置
         this.menuButtons.normal.x = this.width / 2 - this.menuButtons.normal.width / 2;
         this.menuButtons.hardcore.x = this.width / 2 - this.menuButtons.hardcore.width / 2;
+        this.menuButtons.customize.x = this.width / 2 - this.menuButtons.customize.width / 2;
         
         // 计算暂停菜单按钮位置
         this.pauseMenuButtons.restart.x = this.width / 2 - this.pauseMenuButtons.restart.width / 2;
@@ -468,6 +547,13 @@ class FrogBasketballGame {
                     btn.hover = x >= btn.x && x <= btn.x + btn.width &&
                                y >= btn.y && y <= btn.y + btn.height;
                 });
+            } else if (this.gameState === 'customization') {
+                // Check hover state for customization buttons
+                Object.keys(this.customizationButtons).forEach(key => {
+                    const btn = this.customizationButtons[key];
+                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
+                               y >= btn.y && y <= btn.y + btn.height;
+                });
             }
         });
         
@@ -497,6 +583,15 @@ class FrogBasketballGame {
                         this.onPauseMenuButtonClick(key);
                     }
                 });
+            } else if (this.gameState === 'customization') {
+                // Check customization button clicks
+                Object.keys(this.customizationButtons).forEach(key => {
+                    const btn = this.customizationButtons[key];
+                    if (x >= btn.x && x <= btn.x + btn.width &&
+                        y >= btn.y && y <= btn.y + btn.height) {
+                        this.onCustomizationButtonClick(key);
+                    }
+                });
             }
         });
     }
@@ -510,10 +605,15 @@ class FrogBasketballGame {
     }
     
     onMenuButtonClick(buttonKey) {
-        this.difficulty = buttonKey;
-        this.startFadeTransition(() => {
-            this.startGame();
-        });
+        if (buttonKey === 'customize') {
+            this.gameState = 'customization';
+            this.initCustomization();
+        } else {
+            this.difficulty = buttonKey;
+            this.startFadeTransition(() => {
+                this.startGame();
+            });
+        }
     }
     
     pauseGame() {
@@ -893,6 +993,8 @@ class FrogBasketballGame {
             this.drawGameScene();
             // Draw pause menu overlay
             this.drawPauseMenu();
+        } else if (this.gameState === 'customization') {
+            this.drawCustomizationMenu();
         } else {
             this.drawGameScene();
         }
@@ -1091,37 +1193,44 @@ class FrogBasketballGame {
     
     drawPlayer() {
         const p = this.player;
-        const bodyY = p.y + 12;
+        this.drawPlayerWithAppearance(p.x, p.y, p.appearance);
+    }
+
+    drawPlayerWithAppearance(x, y, appearance) {
+        const bodyY = y + 12;
+
+        // 获取当前外观配置
+        const headConfig = this.appearancePresets.heads[appearance.headIndex];
+        const jerseyConfig = this.appearancePresets.jerseys[appearance.jerseyIndex];
+        const numberConfig = this.appearancePresets.numbers[appearance.numberIndex];
 
         // 绘制身体（带渐变色和圆角）
-        const gradient = this.ctx.createLinearGradient(p.x, bodyY, p.x, bodyY + 35);
-        gradient.addColorStop(0, p.bodyColor1);
-        gradient.addColorStop(1, p.bodyColor2);
+        const gradient = this.ctx.createLinearGradient(x, bodyY, x, bodyY + 35);
+        gradient.addColorStop(0, jerseyConfig.color1);
+        gradient.addColorStop(1, jerseyConfig.color2);
         this.ctx.fillStyle = gradient;
-        this.roundRect(p.x + 5, bodyY, 30, 35, 8);
+        this.roundRect(x + 5, bodyY, 30, 35, 8);
 
         // 绘制球衣号码
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.font = 'bold 16px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(p.jerseyNumber, p.x + 20, p.y + 35);
+        this.ctx.fillText(numberConfig, x + 20, y + 35);
 
         // 绘制头部
-        this.ctx.fillStyle = '#FFDBAC'; // 肤色
+        this.ctx.fillStyle = headConfig.skinColor;
         this.ctx.beginPath();
-        this.ctx.arc(p.x + 20, p.y + 8, 12, 0, Math.PI * 2);
+        this.ctx.arc(x + 20, y + 8, 12, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // 绘制头发
-        this.ctx.fillStyle = '#3A2A1A'; // 深棕色头发
-        this.ctx.beginPath();
-        this.ctx.arc(p.x + 20, p.y + 5, 10, Math.PI * 1.1, Math.PI * 1.9);
-        this.ctx.fill();
+        // 绘制头发（不同发型）
+        this.ctx.fillStyle = headConfig.hairColor;
+        this.drawHairStyle(x + 20, y + 5, headConfig.hairStyle);
 
         // 运球动画 (0.7倍速)
         const ballOffset = Math.sin(this.animationFrame * (Math.PI / (30 / this.player.animSpeed)) * 0.7) * 10;
-        const ballX = p.x + 40;
-        const ballY = p.y + 35 + ballOffset;
+        const ballX = x + 40;
+        const ballY = y + 35 + ballOffset;
 
         // 篮球
         this.ctx.fillStyle = '#FF8C00';
@@ -1135,6 +1244,45 @@ class FrogBasketballGame {
         this.ctx.beginPath();
         this.ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
         this.ctx.stroke();
+    }
+
+    drawHairStyle(x, y, style) {
+        this.ctx.beginPath();
+        switch (style) {
+            case 'classic':
+                this.ctx.arc(x, y, 10, Math.PI * 1.1, Math.PI * 1.9);
+                break;
+            case 'spiky':
+                // 画几个尖状的头发
+                this.ctx.moveTo(x - 8, y);
+                this.ctx.lineTo(x - 10, y - 5);
+                this.ctx.lineTo(x - 6, y - 3);
+                this.ctx.lineTo(x - 4, y - 8);
+                this.ctx.lineTo(x - 2, y - 2);
+                this.ctx.lineTo(x, y - 6);
+                this.ctx.lineTo(x + 2, y - 2);
+                this.ctx.lineTo(x + 4, y - 8);
+                this.ctx.lineTo(x + 6, y - 3);
+                this.ctx.lineTo(x + 8, y - 5);
+                this.ctx.lineTo(x + 10, y);
+                break;
+            case 'curly':
+                // 画卷发
+                this.ctx.arc(x - 6, y - 2, 4, 0, Math.PI * 2);
+                this.ctx.arc(x + 6, y - 2, 4, 0, Math.PI * 2);
+                this.ctx.arc(x, y - 6, 4, 0, Math.PI * 2);
+                break;
+            case 'long':
+                // 画长发
+                this.ctx.arc(x, y, 12, Math.PI * 1.1, Math.PI * 1.9);
+                this.ctx.moveTo(x - 10, y + 2);
+                this.ctx.lineTo(x - 8, y + 8);
+                this.ctx.moveTo(x + 10, y + 2);
+                this.ctx.lineTo(x + 8, y + 8);
+                break;
+        }
+        this.ctx.closePath();
+        this.ctx.fill();
     }
     
     drawDefenders() {
@@ -2095,6 +2243,241 @@ class FrogBasketballGame {
             this.ctx.arc(this.basketball.x, this.basketball.y, this.basketball.size, 0, Math.PI * 2);
             this.ctx.stroke();
         }
+    }
+
+    // 换装系统方法
+    loadAppearanceFromStorage() {
+        const saved = localStorage.getItem('playerAppearance');
+        if (saved) {
+            try {
+                const appearance = JSON.parse(saved);
+                this.player.appearance = appearance;
+                this.customization.selectedIndices = {
+                    head: appearance.headIndex,
+                    jersey: appearance.jerseyIndex,
+                    number: appearance.numberIndex
+                };
+            } catch (e) {
+                console.log('Failed to load appearance from storage');
+            }
+        }
+    }
+
+    saveAppearanceToStorage() {
+        try {
+            localStorage.setItem('playerAppearance', JSON.stringify(this.player.appearance));
+        } catch (e) {
+            console.log('Failed to save appearance to storage');
+        }
+    }
+
+    initCustomization() {
+        // 重置换装界面状态
+        this.customization.selectedCategory = 'head';
+        this.customization.selectedIndices = {
+            head: this.player.appearance.headIndex,
+            jersey: this.player.appearance.jerseyIndex,
+            number: this.player.appearance.numberIndex
+        };
+        
+        // 设置类别按钮状态
+        Object.keys(this.customizationButtons).forEach(key => {
+            if (['head', 'jersey', 'number'].includes(key)) {
+                this.customizationButtons[key].active = (key === 'head');
+            }
+        });
+    }
+
+    drawCustomizationMenu() {
+        // 绘制背景
+        this.ctx.fillStyle = '#2C3E50';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+
+        // 绘制标题
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 36px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Character Customization', this.width / 2, 80);
+
+        // 绘制类别按钮
+        this.drawCustomizationButtons();
+
+        // 绘制当前选择的信息
+        this.drawCurrentSelection();
+
+        // 绘制预览
+        this.drawCustomizationPreview();
+    }
+
+    drawCustomizationButtons() {
+        const categories = ['head', 'jersey', 'number'];
+        categories.forEach(category => {
+            const btn = this.customizationButtons[category];
+            
+            // 绘制按钮背景
+            this.ctx.fillStyle = btn.active ? '#3498DB' : (btn.hover ? '#95A5A6' : '#7F8C8D');
+            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
+            
+            // 绘制按钮文字
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2 + 6);
+        });
+
+        // 绘制前进后退按钮
+        const navButtons = ['prev', 'next'];
+        navButtons.forEach(nav => {
+            const btn = this.customizationButtons[nav];
+            this.ctx.fillStyle = btn.hover ? '#E74C3C' : '#C0392B';
+            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
+            
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2 + 6);
+        });
+
+        // 绘制应用/取消按钮
+        const actionButtons = ['apply', 'cancel'];
+        actionButtons.forEach(action => {
+            const btn = this.customizationButtons[action];
+            this.ctx.fillStyle = action === 'apply' ? 
+                (btn.hover ? '#27AE60' : '#2ECC71') : 
+                (btn.hover ? '#E67E22' : '#F39C12');
+            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
+            
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2 + 6);
+        });
+    }
+
+    drawCurrentSelection() {
+        const category = this.customization.selectedCategory;
+        const currentIndex = this.customization.selectedIndices[category];
+        let currentData, totalCount;
+
+        switch (category) {
+            case 'head':
+                currentData = this.appearancePresets.heads[currentIndex];
+                totalCount = this.appearancePresets.heads.length;
+                break;
+            case 'jersey':
+                currentData = this.appearancePresets.jerseys[currentIndex];
+                totalCount = this.appearancePresets.jerseys.length;
+                break;
+            case 'number':
+                currentData = this.appearancePresets.numbers[currentIndex];
+                totalCount = this.appearancePresets.numbers.length;
+                break;
+        }
+
+        // 绘制当前选择信息
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'center';
+        
+        const categoryText = category.charAt(0).toUpperCase() + category.slice(1);
+        this.ctx.fillText(`${categoryText}:`, this.width / 2, 320);
+        
+        this.ctx.font = '20px Arial';
+        const name = typeof currentData === 'string' ? currentData : currentData.name;
+        this.ctx.fillText(name, this.width / 2, 350);
+        
+        this.ctx.font = '16px Arial';
+        this.ctx.fillText(`${currentIndex + 1} / ${totalCount}`, this.width / 2, 380);
+    }
+
+    drawCustomizationPreview() {
+        // 绘制预览框
+        const previewX = this.width / 2 - 50;
+        const previewY = 400;
+        
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(previewX - 20, previewY - 20, 140, 100);
+        
+        // 绘制预览角色
+        const previewAppearance = {
+            headIndex: this.customization.selectedIndices.head,
+            jerseyIndex: this.customization.selectedIndices.jersey,
+            numberIndex: this.customization.selectedIndices.number
+        };
+        
+        this.drawPlayerWithAppearance(previewX, previewY, previewAppearance);
+    }
+
+    onCustomizationButtonClick(buttonKey) {
+        const category = this.customization.selectedCategory;
+        const currentIndex = this.customization.selectedIndices[category];
+        
+        switch (buttonKey) {
+            case 'head':
+            case 'jersey':
+            case 'number':
+                // 切换类别
+                this.customization.selectedCategory = buttonKey;
+                Object.keys(this.customizationButtons).forEach(key => {
+                    if (['head', 'jersey', 'number'].includes(key)) {
+                        this.customizationButtons[key].active = (key === buttonKey);
+                    }
+                });
+                break;
+                
+            case 'prev':
+                // 上一个选项
+                let maxCount = this.getMaxCountForCategory(category);
+                this.customization.selectedIndices[category] = 
+                    (currentIndex - 1 + maxCount) % maxCount;
+                break;
+                
+            case 'next':
+                // 下一个选项
+                let maxCount2 = this.getMaxCountForCategory(category);
+                this.customization.selectedIndices[category] = 
+                    (currentIndex + 1) % maxCount2;
+                break;
+                
+            case 'apply':
+                // 应用外观
+                this.applyAppearance();
+                break;
+                
+            case 'cancel':
+                // 取消并返回菜单
+                this.gameState = 'menu';
+                break;
+        }
+    }
+
+    getMaxCountForCategory(category) {
+        switch (category) {
+            case 'head':
+                return this.appearancePresets.heads.length;
+            case 'jersey':
+                return this.appearancePresets.jerseys.length;
+            case 'number':
+                return this.appearancePresets.numbers.length;
+            default:
+                return 1;
+        }
+    }
+
+    applyAppearance() {
+        // 应用新的外观设置
+        this.player.appearance = {
+            headIndex: this.customization.selectedIndices.head,
+            jerseyIndex: this.customization.selectedIndices.jersey,
+            numberIndex: this.customization.selectedIndices.number
+        };
+        
+        // 保存到本地存储
+        this.saveAppearanceToStorage();
+        
+        // 返回主菜单
+        this.gameState = 'menu';
     }
 }
 
