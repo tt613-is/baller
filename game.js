@@ -1,3 +1,162 @@
+// 触摸控制管理器
+class TouchManager {
+    constructor(game) {
+        this.game = game;
+        this.scale = 1;
+        this.joystickX = 0;
+        this.joystickY = 0;
+        this.isShootPressed = false;
+        this.enabled = true;
+    }
+    
+    setScale(scale) {
+        this.scale = scale;
+    }
+    
+    setJoystickInput(x, y) {
+        if (!this.enabled) return;
+        
+        this.joystickX = x;
+        this.joystickY = y;
+        
+        // 转换为键盘输入
+        this.game.keys = this.game.keys || {};
+        
+        // 水平移动
+        if (Math.abs(x) > 0.1) {
+            if (x > 0) {
+                this.game.keys['ArrowRight'] = true;
+                this.game.keys['d'] = true;
+                this.game.keys['ArrowLeft'] = false;
+                this.game.keys['a'] = false;
+            } else {
+                this.game.keys['ArrowLeft'] = true;
+                this.game.keys['a'] = true;
+                this.game.keys['ArrowRight'] = false;
+                this.game.keys['d'] = false;
+            }
+        } else {
+            this.game.keys['ArrowLeft'] = false;
+            this.game.keys['ArrowRight'] = false;
+            this.game.keys['a'] = false;
+            this.game.keys['d'] = false;
+        }
+        
+        // 垂直移动
+        if (Math.abs(y) > 0.1) {
+            if (y > 0) {
+                this.game.keys['ArrowDown'] = true;
+                this.game.keys['s'] = true;
+                this.game.keys['ArrowUp'] = false;
+                this.game.keys['w'] = false;
+            } else {
+                this.game.keys['ArrowUp'] = true;
+                this.game.keys['w'] = true;
+                this.game.keys['ArrowDown'] = false;
+                this.game.keys['s'] = false;
+            }
+        } else {
+            this.game.keys['ArrowUp'] = false;
+            this.game.keys['ArrowDown'] = false;
+            this.game.keys['w'] = false;
+            this.game.keys['s'] = false;
+        }
+    }
+    
+    onShootPress() {
+        if (!this.enabled) return;
+        
+        this.isShootPressed = true;
+        // 模拟空格键按下
+        this.game.keys[' '] = true;
+        
+        // 触发空格键逻辑
+        if (this.game.gameState === 'playing') {
+            if (this.game.shootingPhase === null && this.game.isPlayerInSpaceButtonArea()) {
+                this.game.shootingPhase = 'angle';
+                this.game.aimAngle = -this.game.shootingRange / 2;
+            } else if (this.game.shootingPhase === 'power') {
+                this.game.shoot();
+                this.game.resetShooting();
+            }
+        }
+    }
+    
+    onShootRelease() {
+        if (!this.enabled) return;
+        
+        this.isShootPressed = false;
+        this.game.keys[' '] = false;
+        
+        // 处理角度选择阶段的松开
+        if (this.game.shootingPhase === 'angle' && this.game.gameState === 'playing') {
+            this.game.lockedAngle = this.game.aimAngle;
+            this.game.shootingPhase = 'power';
+            this.game.powerIndicator = 0;
+        }
+    }
+    
+    onPausePress() {
+        if (!this.enabled) return;
+        
+        // 模拟ESC键
+        if (this.game.gameState === 'playing' && this.game.fadeState === null) {
+            this.game.pauseGame();
+        } else if (this.game.gameState === 'paused') {
+            this.game.resumeGame();
+        }
+    }
+    
+    setEnabled(enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            // 清除所有触摸输入
+            this.setJoystickInput(0, 0);
+        }
+    }
+}
+
+// 设置管理器
+class SettingsManager {
+    constructor() {
+        this.settings = {
+            controlMode: 'auto', // 'auto', 'keyboard', 'touch'
+            touchOpacity: 0.8,
+            soundEnabled: true,
+            theme: 'day'
+        };
+        this.load();
+    }
+    
+    load() {
+        try {
+            const saved = localStorage.getItem('frogBasketballSettings');
+            if (saved) {
+                this.settings = { ...this.settings, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.warn('无法加载设置:', e);
+        }
+    }
+    
+    save() {
+        try {
+            localStorage.setItem('frogBasketballSettings', JSON.stringify(this.settings));
+        } catch (e) {
+            console.warn('无法保存设置:', e);
+        }
+    }
+    
+    set(key, value) {
+        this.settings[key] = value;
+        this.save();
+    }
+    
+    get(key) {
+        return this.settings[key];
+    }
+}
+
 class FrogBasketballGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
@@ -10,8 +169,18 @@ class FrogBasketballGame {
         this.animationFrame = 0;
         this.theme = 'day'; // 'night' or 'day'
         
+        // 初始化设置和触摸管理器
+        this.settingsManager = new SettingsManager();
+        this.touchManager = new TouchManager(this);
+        
+        // 检测设备类型
+        this.isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        // 根据设置决定控制方式
+        this.updateControlMode();
+        
         // Game states
-        this.gameState = 'menu'; // 'menu', 'playing', 'gameover', 'win', 'paused'
+        this.gameState = 'menu'; // 'menu', 'playing', 'gameover', 'win', 'paused', 'settings'
         this.difficulty = 'normal'; // 'normal' or 'hardcore'
         this.previousGameState = null; // Store state before pausing
         
@@ -24,7 +193,7 @@ class FrogBasketballGame {
         this.menuButtons = {
             normal: {
                 x: 0, // Will be calculated
-                y: 300,
+                y: 280,
                 width: 200,
                 height: 60,
                 text: 'Normal',
@@ -32,10 +201,46 @@ class FrogBasketballGame {
             },
             hardcore: {
                 x: 0, // Will be calculated
-                y: 380,
+                y: 360,
                 width: 200,
                 height: 60,
                 text: 'Hardcore',
+                hover: false
+            },
+            settings: {
+                x: 0, // Will be calculated
+                y: 440,
+                width: 200,
+                height: 60,
+                text: 'Settings',
+                hover: false
+            }
+        };
+        
+        // 设置菜单按钮
+        this.settingsButtons = {
+            controlMode: {
+                x: 0, // Will be calculated
+                y: 200,
+                width: 300,
+                height: 50,
+                text: 'Control: Auto',
+                hover: false
+            },
+            touchOpacity: {
+                x: 0, // Will be calculated
+                y: 270,
+                width: 300,
+                height: 50,
+                text: 'Touch Opacity: 80%',
+                hover: false
+            },
+            backToMenu: {
+                x: 0, // Will be calculated
+                y: 400,
+                width: 200,
+                height: 50,
+                text: 'Back to Menu',
                 hover: false
             }
         };
@@ -50,9 +255,17 @@ class FrogBasketballGame {
                 text: 'Restart Game',
                 hover: false
             },
-            backToMenu: {
+            settings: {
                 x: 0, // Will be calculated
                 y: 320,
+                width: 250,
+                height: 50,
+                text: 'Settings',
+                hover: false
+            },
+            backToMenu: {
+                x: 0, // Will be calculated
+                y: 390,
                 width: 250,
                 height: 50,
                 text: 'Back to Menu',
@@ -176,10 +389,20 @@ class FrogBasketballGame {
         // 计算菜单按钮位置
         this.menuButtons.normal.x = this.width / 2 - this.menuButtons.normal.width / 2;
         this.menuButtons.hardcore.x = this.width / 2 - this.menuButtons.hardcore.width / 2;
+        this.menuButtons.settings.x = this.width / 2 - this.menuButtons.settings.width / 2;
+        
+        // 计算设置菜单按钮位置
+        this.settingsButtons.controlMode.x = this.width / 2 - this.settingsButtons.controlMode.width / 2;
+        this.settingsButtons.touchOpacity.x = this.width / 2 - this.settingsButtons.touchOpacity.width / 2;
+        this.settingsButtons.backToMenu.x = this.width / 2 - this.settingsButtons.backToMenu.width / 2;
         
         // 计算暂停菜单按钮位置
         this.pauseMenuButtons.restart.x = this.width / 2 - this.pauseMenuButtons.restart.width / 2;
+        this.pauseMenuButtons.settings.x = this.width / 2 - this.pauseMenuButtons.settings.width / 2;
         this.pauseMenuButtons.backToMenu.x = this.width / 2 - this.pauseMenuButtons.backToMenu.width / 2;
+        
+        // 初始化设置按钮文本
+        this.updateSettingsButtonTexts();
         
         // 开始游戏循环
         this.gameLoop();
@@ -187,6 +410,43 @@ class FrogBasketballGame {
     
     setTheme(theme) {
         this.theme = theme;
+        this.settingsManager.set('theme', theme);
+    }
+    
+    updateControlMode() {
+        const controlMode = this.settingsManager.get('controlMode');
+        let shouldShowTouch = false;
+        
+        if (controlMode === 'auto') {
+            shouldShowTouch = this.isTouchDevice;
+        } else if (controlMode === 'touch') {
+            shouldShowTouch = true;
+        } else {
+            shouldShowTouch = false;
+        }
+        
+        // 更新触摸控制显示
+        if (window.responsiveGame) {
+            if (shouldShowTouch) {
+                window.responsiveGame.showTouchControls();
+            } else {
+                window.responsiveGame.hideTouchControls();
+            }
+        }
+        
+        // 更新触摸管理器状态
+        this.touchManager.setEnabled(shouldShowTouch);
+        
+        // 更新透明度
+        this.updateTouchOpacity();
+    }
+    
+    updateTouchOpacity() {
+        const opacity = this.settingsManager.get('touchOpacity');
+        const controls = document.querySelectorAll('.virtual-joystick, .touch-shoot-button, .touch-pause-button');
+        controls.forEach(control => {
+            control.style.opacity = control.classList.contains('show') ? opacity : 0;
+        });
     }
     
     initDefenders() {
@@ -461,6 +721,13 @@ class FrogBasketballGame {
                     btn.hover = x >= btn.x && x <= btn.x + btn.width &&
                                y >= btn.y && y <= btn.y + btn.height;
                 });
+            } else if (this.gameState === 'settings') {
+                // Check hover state for settings buttons
+                Object.keys(this.settingsButtons).forEach(key => {
+                    const btn = this.settingsButtons[key];
+                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
+                               y >= btn.y && y <= btn.y + btn.height;
+                });
             } else if (this.gameState === 'paused') {
                 // Check hover state for pause menu buttons
                 Object.keys(this.pauseMenuButtons).forEach(key => {
@@ -488,6 +755,15 @@ class FrogBasketballGame {
                         this.onMenuButtonClick(key);
                     }
                 });
+            } else if (this.gameState === 'settings') {
+                // Check settings button clicks
+                Object.keys(this.settingsButtons).forEach(key => {
+                    const btn = this.settingsButtons[key];
+                    if (x >= btn.x && x <= btn.x + btn.width &&
+                        y >= btn.y && y <= btn.y + btn.height) {
+                        this.onSettingsButtonClick(key);
+                    }
+                });
             } else if (this.gameState === 'paused') {
                 // Check pause menu button clicks
                 Object.keys(this.pauseMenuButtons).forEach(key => {
@@ -510,10 +786,15 @@ class FrogBasketballGame {
     }
     
     onMenuButtonClick(buttonKey) {
-        this.difficulty = buttonKey;
-        this.startFadeTransition(() => {
-            this.startGame();
-        });
+        if (buttonKey === 'normal' || buttonKey === 'hardcore') {
+            this.difficulty = buttonKey;
+            this.startFadeTransition(() => {
+                this.startGame();
+            });
+        } else if (buttonKey === 'settings') {
+            this.gameState = 'settings';
+            this.updateSettingsButtonTexts();
+        }
     }
     
     pauseGame() {
@@ -533,11 +814,42 @@ class FrogBasketballGame {
             this.startFadeTransition(() => {
                 this.restartGameFromPause();
             });
+        } else if (buttonKey === 'settings') {
+            this.gameState = 'settings';
+            this.updateSettingsButtonTexts();
         } else if (buttonKey === 'backToMenu') {
             this.startFadeTransition(() => {
                 this.backToMenuFromPause();
             });
         }
+    }
+    
+    onSettingsButtonClick(buttonKey) {
+        if (buttonKey === 'controlMode') {
+            const modes = ['auto', 'keyboard', 'touch'];
+            const currentMode = this.settingsManager.get('controlMode');
+            const nextIndex = (modes.indexOf(currentMode) + 1) % modes.length;
+            this.settingsManager.set('controlMode', modes[nextIndex]);
+            this.updateControlMode();
+            this.updateSettingsButtonTexts();
+        } else if (buttonKey === 'touchOpacity') {
+            const opacities = [0.4, 0.6, 0.8, 1.0];
+            const currentOpacity = this.settingsManager.get('touchOpacity');
+            const nextIndex = (opacities.indexOf(currentOpacity) + 1) % opacities.length;
+            this.settingsManager.set('touchOpacity', opacities[nextIndex]);
+            this.updateTouchOpacity();
+            this.updateSettingsButtonTexts();
+        } else if (buttonKey === 'backToMenu') {
+            this.gameState = 'menu';
+        }
+    }
+    
+    updateSettingsButtonTexts() {
+        const controlMode = this.settingsManager.get('controlMode');
+        const touchOpacity = this.settingsManager.get('touchOpacity');
+        
+        this.settingsButtons.controlMode.text = `Control: ${controlMode.charAt(0).toUpperCase() + controlMode.slice(1)}`;
+        this.settingsButtons.touchOpacity.text = `Touch Opacity: ${Math.round(touchOpacity * 100)}%`;
     }
     
     restartGameFromPause() {
@@ -638,6 +950,12 @@ class FrogBasketballGame {
         // Update based on game state
         if (this.gameState === 'menu') {
             // Menu animations
+            this.animationFrame++;
+            return;
+        }
+        
+        if (this.gameState === 'settings') {
+            // Settings menu animations only
             this.animationFrame++;
             return;
         }
@@ -888,6 +1206,8 @@ class FrogBasketballGame {
         
         if (this.gameState === 'menu') {
             this.drawMainMenu();
+        } else if (this.gameState === 'settings') {
+            this.drawSettingsMenu();
         } else if (this.gameState === 'paused') {
             // Draw game in background
             this.drawGameScene();
@@ -2007,6 +2327,116 @@ class FrogBasketballGame {
         this.ctx.fillText('Choose your difficulty level', this.width / 2, 250);
     }
 
+    drawSettingsMenu() {
+        // Menu background gradient
+        const bgGradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGradient.addColorStop(0, '#1a1a2e');
+        bgGradient.addColorStop(0.5, '#16213e');
+        bgGradient.addColorStop(1, '#0f0f23');
+        this.ctx.fillStyle = bgGradient;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Draw animated stars
+        this.ctx.fillStyle = '#FFFFFF';
+        for (let i = 0; i < 50; i++) {
+            const x = (i * 137 + this.animationFrame * 0.5) % this.width;
+            const y = (i * 89) % this.height;
+            const size = Math.sin(i + this.animationFrame * 0.02) * 1.5 + 1.5;
+            const alpha = Math.sin(i + this.animationFrame * 0.03) * 0.5 + 0.5;
+            
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, size, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+        }
+        
+        // Draw "Settings" title
+        const titleY = 120;
+        
+        this.ctx.save();
+        this.ctx.shadowColor = '#FFD700';
+        this.ctx.shadowBlur = 30;
+        this.ctx.shadowOffsetY = 5;
+        
+        // Main title text with gradient
+        const gradient = this.ctx.createLinearGradient(0, titleY - 30, 0, titleY + 30);
+        gradient.addColorStop(0, '#FFD700');
+        gradient.addColorStop(0.5, '#FFA500');
+        gradient.addColorStop(1, '#FF6347');
+        
+        this.ctx.fillStyle = gradient;
+        this.ctx.font = 'bold 60px "Arial Black"';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('SETTINGS', this.width / 2, titleY);
+        
+        // Outline
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeText('SETTINGS', this.width / 2, titleY);
+        
+        this.ctx.restore();
+        
+        // Draw settings buttons
+        Object.keys(this.settingsButtons).forEach(key => {
+            const btn = this.settingsButtons[key];
+            
+            this.ctx.save();
+            
+            // Button shadow
+            this.ctx.shadowColor = '#000000';
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 5;
+            
+            // Button background
+            if (btn.hover) {
+                const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                btnGradient.addColorStop(0, '#FFD700');
+                btnGradient.addColorStop(1, '#FFA500');
+                this.ctx.fillStyle = btnGradient;
+            } else {
+                const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                btnGradient.addColorStop(0, '#4A90E2');
+                btnGradient.addColorStop(1, '#2E5CA5');
+                this.ctx.fillStyle = btnGradient;
+            }
+            
+            this.roundRect(btn.x, btn.y, btn.width, btn.height, 10);
+            this.ctx.fill();
+            
+            // Reset shadow for border and text
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // Button border
+            this.ctx.strokeStyle = btn.hover ? '#FFFFFF' : '#2E5CA5';
+            this.ctx.lineWidth = 3;
+            this.ctx.stroke();
+            
+            // Button text
+            this.ctx.fillStyle = btn.hover ? '#000000' : '#FFFFFF';
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2);
+            
+            this.ctx.restore();
+        });
+        
+        // Draw instructions
+        this.ctx.fillStyle = '#CCCCCC';
+        this.ctx.font = '14px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Auto: Automatically detect device type', this.width / 2, this.height - 100);
+        this.ctx.fillText('Keyboard: Always use keyboard controls', this.width / 2, this.height - 80);
+        this.ctx.fillText('Touch: Always show touch controls', this.width / 2, this.height - 60);
+        this.ctx.fillText('Touch Opacity: Adjust transparency of touch controls', this.width / 2, this.height - 40);
+    }
+
     // 绘制投篮瞄准指针和篮球
     drawShooting() {
         const playerCenterX = this.player.x + this.player.width / 2;
@@ -2106,3 +2536,14 @@ function restartGame() {
 // 初始化游戏
 const game = new FrogBasketballGame();
 window.game = game;
+
+// 设置主题
+const savedTheme = game.settingsManager.get('theme');
+if (savedTheme) {
+    game.setTheme(savedTheme);
+    if (savedTheme === 'day') {
+        document.body.classList.add('day-theme');
+    } else {
+        document.body.classList.remove('day-theme');
+    }
+}

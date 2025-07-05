@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Frog Basketball</title>
     <style>
         :root {
@@ -23,6 +23,10 @@
             --night-canvas-border: #000;
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
@@ -33,10 +37,17 @@
             align-items: center;
             min-height: 100vh;
             transition: background 0.5s ease;
+            overflow: hidden;
         }
 
         body.day-theme {
             background: var(--day-bg-gradient);
+        }
+        
+        .game-wrapper {
+            position: relative;
+            transform-origin: center;
+            transition: transform 0.3s ease;
         }
         
         .game-container {
@@ -47,6 +58,8 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             transition: background-color 0.5s ease, border-color 0.5s ease;
             position: relative;
+            width: 840px; /* 800 + 40 padding */
+            height: 640px; /* 600 + 40 padding */
         }
 
         body.day-theme .game-container {
@@ -57,6 +70,8 @@
         #gameCanvas {
             border: 2px solid var(--night-canvas-border);
             display: block;
+            width: 800px;
+            height: 600px;
         }
 
         body.day-theme #gameCanvas {
@@ -131,33 +146,387 @@
             font-size: 12px;
             padding: 6px 12px;
         }
+
+        /* 触摸控制按钮 */
+        .touch-controls {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .touch-controls.active {
+            pointer-events: auto;
+        }
+
+        .virtual-joystick {
+            position: absolute;
+            left: 50px;
+            bottom: 80px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .virtual-joystick.show {
+            opacity: 1;
+        }
+
+        .joystick-handle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            position: absolute;
+            transform: translate(-50%, -50%);
+            transition: none;
+        }
+
+        .touch-shoot-button {
+            position: absolute;
+            right: 50px;
+            bottom: 80px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 0, 0, 0.7);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .touch-shoot-button.show {
+            opacity: 1;
+        }
+
+        .touch-shoot-button:active {
+            background: rgba(255, 0, 0, 0.9);
+            transform: scale(0.95);
+        }
+
+        .touch-pause-button {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .touch-pause-button.show {
+            opacity: 1;
+        }
+
+        .touch-pause-button:active {
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(0.95);
+        }
+
+        /* 屏幕旋转提示 */
+        .rotate-prompt {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        .rotate-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .instructions {
+                font-size: 12px;
+            }
+            
+            .score {
+                font-size: 20px;
+            }
+        }
+
+        /* 横屏提示 */
+        @media (orientation: portrait) and (max-width: 768px) {
+            .rotate-prompt {
+                display: flex;
+            }
+            
+            .game-wrapper {
+                opacity: 0.3;
+            }
+        }
     </style>
 </head>
 <body class="day-theme">
-    <div class="game-container">
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div class="ui">
-            <div class="score">Score: <span id="score">0</span></div>
-            <div class="instructions">
-                Use arrow keys or WASD to move the player, avoid defenders and reach the basket to score!
+    <div class="game-wrapper">
+        <div class="game-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            <div class="ui">
+                <div class="score">Score: <span id="score">0</span></div>
+                <div class="instructions">
+                    Use arrow keys or WASD to move the player, avoid defenders and reach the basket to score!<br>
+                    在手机上使用虚拟摇杆移动，点击投篮按钮投篮！
+                </div>
+            </div>
+            <div class="game-over" id="gameOver">
+                <h2 id="gameOverText">Game Over!</h2>
+                <p id="finalScore">Final Score: 0</p>
+                <button onclick="restartGame()">Restart Game</button>
+            </div>
+            <button id="themeSwitcher">切换主题</button>
+            
+            <!-- 触摸控制层 -->
+            <div class="touch-controls" id="touchControls">
+                <div class="virtual-joystick" id="virtualJoystick">
+                    <div class="joystick-handle" id="joystickHandle"></div>
+                </div>
+                <div class="touch-shoot-button" id="touchShootButton">SHOOT</div>
+                <div class="touch-pause-button" id="touchPauseButton">⏸</div>
             </div>
         </div>
-        <div class="game-over" id="gameOver">
-            <h2 id="gameOverText">Game Over!</h2>
-            <p id="finalScore">Final Score: 0</p>
-            <button onclick="restartGame()">Restart Game</button>
-        </div>
-        <button id="themeSwitcher">切换主题</button>
+    </div>
+    
+    <!-- 横屏提示 -->
+    <div class="rotate-prompt">
+        <div class="rotate-icon">📱</div>
+        <div>请旋转设备到横屏模式</div>
+        <div style="font-size: 16px; margin-top: 10px;">以获得最佳游戏体验</div>
     </div>
     
     <script src="game.js"></script>
     <script>
+        // 响应式缩放系统
+        class ResponsiveGame {
+            constructor() {
+                this.gameWrapper = document.querySelector('.game-wrapper');
+                this.gameContainer = document.querySelector('.game-container');
+                this.touchControls = document.getElementById('touchControls');
+                this.isTouchDevice = 'ontouchstart' in window;
+                this.currentScale = 1;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupResize();
+                this.setupTouchControls();
+                this.updateScale();
+                
+                // 设置触摸控制显示
+                if (this.isTouchDevice) {
+                    this.showTouchControls();
+                }
+            }
+            
+            setupResize() {
+                window.addEventListener('resize', () => {
+                    this.updateScale();
+                });
+            }
+            
+            updateScale() {
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                const gameWidth = 840; // game-container width
+                const gameHeight = 640; // game-container height
+                
+                // 计算缩放比例，保持4:3比例
+                const scaleX = windowWidth / gameWidth;
+                const scaleY = windowHeight / gameHeight;
+                const scale = Math.min(scaleX, scaleY, 1); // 不放大，只缩小
+                
+                this.currentScale = scale;
+                this.gameWrapper.style.transform = `scale(${scale})`;
+                
+                // 如果缩放了，需要调整触摸控制的响应区域
+                if (window.game && window.game.touchManager) {
+                    window.game.touchManager.setScale(scale);
+                }
+            }
+            
+            setupTouchControls() {
+                if (!this.isTouchDevice) return;
+                
+                this.setupVirtualJoystick();
+                this.setupTouchButtons();
+            }
+            
+            setupVirtualJoystick() {
+                const joystick = document.getElementById('virtualJoystick');
+                const handle = document.getElementById('joystickHandle');
+                let isDragging = false;
+                let startX = 0;
+                let startY = 0;
+                let currentX = 0;
+                let currentY = 0;
+                
+                const joystickRadius = 60;
+                const handleRadius = 25;
+                
+                joystick.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    isDragging = true;
+                    const rect = joystick.getBoundingClientRect();
+                    startX = rect.left + rect.width / 2;
+                    startY = rect.top + rect.height / 2;
+                    
+                    // 显示手柄
+                    handle.style.left = '50%';
+                    handle.style.top = '50%';
+                });
+                
+                joystick.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    
+                    const touch = e.touches[0];
+                    const deltaX = touch.clientX - startX;
+                    const deltaY = touch.clientY - startY;
+                    
+                    // 限制在摇杆范围内
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    const maxDistance = joystickRadius - handleRadius;
+                    
+                    if (distance <= maxDistance) {
+                        currentX = deltaX;
+                        currentY = deltaY;
+                    } else {
+                        currentX = (deltaX / distance) * maxDistance;
+                        currentY = (deltaY / distance) * maxDistance;
+                    }
+                    
+                    handle.style.left = `calc(50% + ${currentX}px)`;
+                    handle.style.top = `calc(50% + ${currentY}px)`;
+                    
+                    // 发送移动事件给游戏
+                    if (window.game && window.game.touchManager) {
+                        const normalizedX = currentX / maxDistance;
+                        const normalizedY = currentY / maxDistance;
+                        window.game.touchManager.setJoystickInput(normalizedX, normalizedY);
+                    }
+                });
+                
+                joystick.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    isDragging = false;
+                    currentX = 0;
+                    currentY = 0;
+                    
+                    // 重置手柄位置
+                    handle.style.left = '50%';
+                    handle.style.top = '50%';
+                    
+                    // 停止移动
+                    if (window.game && window.game.touchManager) {
+                        window.game.touchManager.setJoystickInput(0, 0);
+                    }
+                });
+            }
+            
+            setupTouchButtons() {
+                const shootButton = document.getElementById('touchShootButton');
+                const pauseButton = document.getElementById('touchPauseButton');
+                
+                shootButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (window.game && window.game.touchManager) {
+                        window.game.touchManager.onShootPress();
+                    }
+                });
+                
+                shootButton.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (window.game && window.game.touchManager) {
+                        window.game.touchManager.onShootRelease();
+                    }
+                });
+                
+                pauseButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (window.game && window.game.touchManager) {
+                        window.game.touchManager.onPausePress();
+                    }
+                });
+            }
+            
+            showTouchControls() {
+                const controls = ['virtualJoystick', 'touchShootButton', 'touchPauseButton'];
+                controls.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.classList.add('show');
+                    }
+                });
+                this.touchControls.classList.add('active');
+            }
+            
+            hideTouchControls() {
+                const controls = ['virtualJoystick', 'touchShootButton', 'touchPauseButton'];
+                controls.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.classList.remove('show');
+                    }
+                });
+                this.touchControls.classList.remove('active');
+            }
+        }
+        
+        // 初始化响应式系统
+        window.responsiveGame = new ResponsiveGame();
+        
+        // 主题切换
         const themeSwitcher = document.getElementById('themeSwitcher');
         themeSwitcher.addEventListener('click', () => {
             document.body.classList.toggle('day-theme');
             const currentTheme = document.body.classList.contains('day-theme') ? 'day' : 'night';
             if (window.game) {
                 window.game.setTheme(currentTheme);
+                window.game.settingsManager.set('theme', currentTheme);
             }
         });
     </script>
