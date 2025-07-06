@@ -612,33 +612,16 @@ class FrogBasketballGame {
             const y = e.clientY - rect.top;
             
             if (this.gameState === 'menu') {
-                // Check hover state for main menu buttons
-                Object.keys(this.menuButtons).forEach(key => {
-                    const btn = this.menuButtons[key];
-                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
-                               y >= btn.y && y <= btn.y + btn.height;
-                });
-                
-                // Check hover state for secondary buttons
-                Object.keys(this.secondaryButtons).forEach(key => {
-                    const btn = this.secondaryButtons[key];
-                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
-                               y >= btn.y && y <= btn.y + btn.height;
-                });
+                // Update hover state for main menu buttons
+                this.updateButtonHoverStates(x, y, this.menuButtons);
+                // Update hover state for secondary buttons
+                this.updateButtonHoverStates(x, y, this.secondaryButtons);
             } else if (this.gameState === 'paused') {
-                // Check hover state for pause menu buttons
-                Object.keys(this.pauseMenuButtons).forEach(key => {
-                    const btn = this.pauseMenuButtons[key];
-                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
-                               y >= btn.y && y <= btn.y + btn.height;
-                });
+                // Update hover state for pause menu buttons
+                this.updateButtonHoverStates(x, y, this.pauseMenuButtons);
             } else if (this.gameState === 'customization') {
-                // Check hover state for customization buttons
-                Object.keys(this.customizationButtons).forEach(key => {
-                    const btn = this.customizationButtons[key];
-                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
-                               y >= btn.y && y <= btn.y + btn.height;
-                });
+                // Update hover state for customization buttons
+                this.updateButtonHoverStates(x, y, this.customizationButtons);
             }
         });
         
@@ -652,40 +635,15 @@ class FrogBasketballGame {
             
             if (this.gameState === 'menu') {
                 // Check main menu button clicks
-                Object.keys(this.menuButtons).forEach(key => {
-                    const btn = this.menuButtons[key];
-                    if (x >= btn.x && x <= btn.x + btn.width &&
-                        y >= btn.y && y <= btn.y + btn.height) {
-                        this.onMenuButtonClick(key);
-                    }
-                });
-                
+                this.checkButtonClicks(x, y, this.menuButtons, (key) => this.onMenuButtonClick(key));
                 // Check secondary button clicks
-                Object.keys(this.secondaryButtons).forEach(key => {
-                    const btn = this.secondaryButtons[key];
-                    if (x >= btn.x && x <= btn.x + btn.width &&
-                        y >= btn.y && y <= btn.y + btn.height) {
-                        this.onSecondaryButtonClick(key);
-                    }
-                });
+                this.checkButtonClicks(x, y, this.secondaryButtons, (key) => this.onSecondaryButtonClick(key));
             } else if (this.gameState === 'paused') {
                 // Check pause menu button clicks
-                Object.keys(this.pauseMenuButtons).forEach(key => {
-                    const btn = this.pauseMenuButtons[key];
-                    if (x >= btn.x && x <= btn.x + btn.width &&
-                        y >= btn.y && y <= btn.y + btn.height) {
-                        this.onPauseMenuButtonClick(key);
-                    }
-                });
+                this.checkButtonClicks(x, y, this.pauseMenuButtons, (key) => this.onPauseMenuButtonClick(key));
             } else if (this.gameState === 'customization') {
                 // Check customization button clicks
-                Object.keys(this.customizationButtons).forEach(key => {
-                    const btn = this.customizationButtons[key];
-                    if (x >= btn.x && x <= btn.x + btn.width &&
-                        y >= btn.y && y <= btn.y + btn.height) {
-                        this.onCustomizationButtonClick(key);
-                    }
-                });
+                this.checkButtonClicks(x, y, this.customizationButtons, (key) => this.onCustomizationButtonClick(key));
             }
         });
     }
@@ -1018,6 +976,30 @@ class FrogBasketballGame {
                rect1.y + rect1.height > rect2.y;
     }
     
+    // 通用按钮点击检测函数
+    isPointInButton(x, y, button) {
+        return x >= button.x && x <= button.x + button.width &&
+               y >= button.y && y <= button.y + button.height;
+    }
+    
+    // 检测多个按钮的点击
+    checkButtonClicks(x, y, buttons, callback) {
+        Object.keys(buttons).forEach(key => {
+            const btn = buttons[key];
+            if (this.isPointInButton(x, y, btn)) {
+                callback(key);
+            }
+        });
+    }
+    
+    // 更新多个按钮的悬停状态
+    updateButtonHoverStates(x, y, buttons) {
+        Object.keys(buttons).forEach(key => {
+            const btn = buttons[key];
+            btn.hover = this.isPointInButton(x, y, btn);
+        });
+    }
+    
     createScoreEffect(x, y) {
         // 创建得分粒子效果
         for (let i = 0; i < 10; i++) {
@@ -1296,7 +1278,19 @@ class FrogBasketballGame {
         this.ctx.lineTo(x, y + radius);
         this.ctx.quadraticCurveTo(x, y, x + radius, y);
         this.ctx.closePath();
+        // 移除自动填充，让调用者决定是否填充或描边
+    }
+    
+    // --- 辅助方法：绘制填充的圆角矩形 ---
+    fillRoundRect(x, y, width, height, radius) {
+        this.roundRect(x, y, width, height, radius);
         this.ctx.fill();
+    }
+    
+    // --- 辅助方法：绘制描边的圆角矩形 ---
+    strokeRoundRect(x, y, width, height, radius) {
+        this.roundRect(x, y, width, height, radius);
+        this.ctx.stroke();
     }
     
     drawPlayer() {
@@ -1321,7 +1315,7 @@ class FrogBasketballGame {
         gradient.addColorStop(0, jerseyConfig.color1);
         gradient.addColorStop(1, jerseyConfig.color2);
         this.ctx.fillStyle = gradient;
-        this.roundRect(x + 5 * scale, bodyY, 30 * scale, 35 * scale, 8 * scale);
+        this.fillRoundRect(x + 5 * scale, bodyY, 30 * scale, 35 * scale, 8 * scale);
 
         // 绘制球衣号码
         this.ctx.fillStyle = '#FFFFFF';
@@ -1417,7 +1411,7 @@ class FrogBasketballGame {
             gradient.addColorStop(0, color1);
             gradient.addColorStop(1, color2);
             this.ctx.fillStyle = gradient;
-            this.roundRect(bodyX, bodyY, bodyWidth, bodyHeight, 5);
+            this.fillRoundRect(bodyX, bodyY, bodyWidth, bodyHeight, 5);
 
             // --- 球衣号码 ---
             const jerseyFontSize = defender.laneIndex === 1 ? 22 : 14;
@@ -1680,7 +1674,7 @@ class FrogBasketballGame {
     // --- Space 按钮：计时与切换 ---
     updateSpaceButton() {
         this.spaceButtonTimer++;
-        const intervalFrames = 350; // 10秒 * 60fps
+        const intervalFrames = 350; // 约5.8秒 * 60fps
         if (this.spaceButtonTimer >= intervalFrames) {
             // 切换左右半区
             this.spaceButtonSide = this.spaceButtonSide === 'left' ? 'right' : 'left';
@@ -1693,7 +1687,7 @@ class FrogBasketballGame {
     drawSpaceButton() {
         const btn = this.spaceButton;
         this.ctx.fillStyle = '#C62828'; // 红色
-        this.roundRect(btn.x, btn.y, btn.width, btn.height, 6);
+        this.fillRoundRect(btn.x, btn.y, btn.width, btn.height, 6);
 
         this.ctx.fillStyle = '#FFFFFF';
         this.ctx.font = 'bold 18px Arial';
@@ -1942,11 +1936,10 @@ class FrogBasketballGame {
             
             // 提示框背景
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            this.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 15);
             this.ctx.strokeStyle = '#333';
             this.ctx.lineWidth = 3;
-            this.roundRect(boxX, boxY, boxWidth, boxHeight, 15);
-            this.ctx.fill();
-            this.ctx.stroke();
+            this.strokeRoundRect(boxX, boxY, boxWidth, boxHeight, 15);
             
             // "Missed" 文字
             this.ctx.fillStyle = '#FF4444';
@@ -2067,11 +2060,10 @@ class FrogBasketballGame {
         
         // 菜单背景
         this.ctx.fillStyle = 'rgba(30, 30, 50, 0.95)';
+        this.fillRoundRect(menuX, menuY, menuWidth, menuHeight, 15);
         this.ctx.strokeStyle = '#FFD700';
         this.ctx.lineWidth = 3;
-        this.roundRect(menuX, menuY, menuWidth, menuHeight, 15);
-        this.ctx.fill();
-        this.ctx.stroke();
+        this.strokeRoundRect(menuX, menuY, menuWidth, menuHeight, 15);
         
         // 暂停标题
         this.ctx.fillStyle = '#FFFFFF';
@@ -2105,8 +2097,7 @@ class FrogBasketballGame {
                 this.ctx.fillStyle = btnGradient;
             }
             
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
-            this.ctx.fill();
+            this.fillRoundRect(btn.x, btn.y, btn.width, btn.height, 8);
             
             // Reset shadow for border and text
             this.ctx.shadowBlur = 0;
@@ -2244,8 +2235,7 @@ class FrogBasketballGame {
                 this.ctx.fillStyle = btnGradient;
             }
             
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 10);
-            this.ctx.fill();
+            this.fillRoundRect(btn.x, btn.y, btn.width, btn.height, 10);
             
             // Reset shadow for border and text
             this.ctx.shadowBlur = 0;
@@ -2308,8 +2298,7 @@ class FrogBasketballGame {
                 }
             }
             
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
-            this.ctx.fill();
+            this.fillRoundRect(btn.x, btn.y, btn.width, btn.height, 8);
             
             // Reset shadow for border and text
             this.ctx.shadowBlur = 0;
@@ -2434,16 +2423,49 @@ class FrogBasketballGame {
         if (saved) {
             try {
                 const appearance = JSON.parse(saved);
-                this.player.appearance = appearance;
-                this.customization.selectedIndices = {
-                    head: appearance.headIndex,
-                    jersey: appearance.jerseyIndex,
-                    number: appearance.numberIndex
-                };
+                
+                // 验证appearance数据结构
+                if (this.isValidAppearance(appearance)) {
+                    this.player.appearance = appearance;
+                    this.customization.selectedIndices = {
+                        head: appearance.headIndex,
+                        jersey: appearance.jerseyIndex,
+                        number: appearance.numberIndex
+                    };
+                } else {
+                    console.log('Invalid appearance data, using defaults');
+                    this.setDefaultAppearance();
+                }
             } catch (e) {
-                console.log('Failed to load appearance from storage');
+                console.log('Failed to parse appearance from storage, using defaults');
+                this.setDefaultAppearance();
             }
         }
+    }
+    
+    // 验证外观数据是否有效
+    isValidAppearance(appearance) {
+        return appearance &&
+               typeof appearance.headIndex === 'number' &&
+               typeof appearance.jerseyIndex === 'number' &&
+               typeof appearance.numberIndex === 'number' &&
+               appearance.headIndex >= 0 && appearance.headIndex < this.appearancePresets.heads.length &&
+               appearance.jerseyIndex >= 0 && appearance.jerseyIndex < this.appearancePresets.jerseys.length &&
+               appearance.numberIndex >= 0 && appearance.numberIndex < this.appearancePresets.numbers.length;
+    }
+    
+    // 设置默认外观
+    setDefaultAppearance() {
+        this.player.appearance = {
+            headIndex: 0,
+            jerseyIndex: 0,
+            numberIndex: 0
+        };
+        this.customization.selectedIndices = {
+            head: 0,
+            jersey: 0,
+            number: 0
+        };
     }
 
     saveAppearanceToStorage() {
@@ -2564,8 +2586,7 @@ class FrogBasketballGame {
         panelGradient.addColorStop(0, 'rgba(52, 73, 94, 0.9)');
         panelGradient.addColorStop(1, 'rgba(44, 62, 80, 0.9)');
         this.ctx.fillStyle = panelGradient;
-        this.roundRect(x, y, 300, 400, 15);
-        this.ctx.fill();
+        this.fillRoundRect(x, y, 300, 400, 15);
         
         // 面板边框
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
@@ -2600,8 +2621,7 @@ class FrogBasketballGame {
         panelGradient.addColorStop(0, 'rgba(41, 128, 185, 0.9)');
         panelGradient.addColorStop(1, 'rgba(52, 152, 219, 0.9)');
         this.ctx.fillStyle = panelGradient;
-        this.roundRect(x, y, 300, 400, 15);
-        this.ctx.fill();
+        this.fillRoundRect(x, y, 300, 400, 15);
         
         // 面板边框
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
@@ -2649,7 +2669,7 @@ class FrogBasketballGame {
             }
             
             this.ctx.fillStyle = gradient;
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 10);
+            this.fillRoundRect(btn.x, btn.y, btn.width, btn.height, 10);
             
             // 重置阴影
             this.ctx.shadowBlur = 0;
@@ -2659,7 +2679,7 @@ class FrogBasketballGame {
             // 绘制按钮边框
             this.ctx.strokeStyle = btn.active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)';
             this.ctx.lineWidth = 2;
-            this.ctx.stroke();
+            this.strokeRoundRect(btn.x, btn.y, btn.width, btn.height, 10);
             
             // 绘制按钮文字
             this.ctx.fillStyle = '#FFFFFF';
@@ -2695,7 +2715,7 @@ class FrogBasketballGame {
             }
             
             this.ctx.fillStyle = gradient;
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
+            this.fillRoundRect(btn.x, btn.y, btn.width, btn.height, 8);
             
             // 重置阴影
             this.ctx.shadowBlur = 0;
@@ -2750,7 +2770,7 @@ class FrogBasketballGame {
             }
             
             this.ctx.fillStyle = gradient;
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 10);
+            this.fillRoundRect(btn.x, btn.y, btn.width, btn.height, 10);
             
             // 重置阴影
             this.ctx.shadowBlur = 0;
@@ -2760,7 +2780,7 @@ class FrogBasketballGame {
             // 绘制边框
             this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 3;
-            this.ctx.stroke();
+            this.strokeRoundRect(btn.x, btn.y, btn.width, btn.height, 10);
             
             this.ctx.fillStyle = action === 'apply' ? '#FFFFFF' : '#000000';
             this.ctx.font = 'bold 18px Arial';
@@ -2942,7 +2962,7 @@ class FrogBasketballGame {
             }
             
             this.ctx.fillStyle = gradient;
-            this.roundRect(btnX, btnY, 260, 40, 10);
+            this.fillRoundRect(btnX, btnY, 260, 40, 10);
             
             // 重置阴影
             this.ctx.shadowBlur = 0;
@@ -2952,7 +2972,7 @@ class FrogBasketballGame {
             // 绘制按钮边框
             this.ctx.strokeStyle = btn.active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)';
             this.ctx.lineWidth = 2;
-            this.ctx.stroke();
+            this.strokeRoundRect(btnX, btnY, 260, 40, 10);
             
             // 绘制按钮文字
             this.ctx.fillStyle = '#FFFFFF';
@@ -3042,7 +3062,7 @@ class FrogBasketballGame {
             }
             
             this.ctx.fillStyle = gradient;
-            this.roundRect(btnX, btnY, 100, 40, 8);
+            this.fillRoundRect(btnX, btnY, 100, 40, 8);
             
             // 重置阴影
             this.ctx.shadowBlur = 0;
@@ -3052,7 +3072,7 @@ class FrogBasketballGame {
             // 绘制边框
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             this.ctx.lineWidth = 2;
-            this.ctx.stroke();
+            this.strokeRoundRect(btnX, btnY, 100, 40, 8);
             
             this.ctx.fillStyle = '#FFFFFF';
             this.ctx.font = 'bold 14px Arial';
@@ -3149,7 +3169,7 @@ class FrogBasketballGame {
             }
             
             this.ctx.fillStyle = gradient;
-            this.roundRect(btnX, btnY, 120, 50, 10);
+            this.fillRoundRect(btnX, btnY, 120, 50, 10);
             
             // 重置阴影
             this.ctx.shadowBlur = 0;
@@ -3159,7 +3179,7 @@ class FrogBasketballGame {
             // 绘制边框
             this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 3;
-            this.ctx.stroke();
+            this.strokeRoundRect(btnX, btnY, 120, 50, 10);
             
             this.ctx.fillStyle = action === 'apply' ? '#FFFFFF' : '#000000';
             this.ctx.font = 'bold 18px Arial';
