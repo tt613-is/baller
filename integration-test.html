@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完整架构集成测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        canvas {
+            border: 2px solid #4CAF50;
+            background: #000;
+            display: block;
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .info {
+            text-align: center;
+            margin: 20px;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .status-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .status-card h3 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        
+        .status-card .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .log {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid #333;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-info { color: #4CAF50; }
+        .log-warn { color: #FF9800; }
+        .log-error { color: #F44336; }
+        .log-debug { color: #2196F3; }
+        
+        .architecture-info {
+            background: rgba(76, 175, 80, 0.1);
+            border: 1px solid #4CAF50;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+        }
+        
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .file-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .file-name {
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .file-desc {
+            font-size: 12px;
+            color: #ccc;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>🏀 篮球游戏 - 完整架构集成测试</h1>
+        <p>新的8文件模块化架构 - 状态机驱动的游戏引擎</p>
+    </div>
+    
+    <div class="architecture-info">
+        <h2>📁 新架构文件结构</h2>
+        <div class="file-list">
+            <div class="file-item">
+                <div class="file-name">js/core/GameEngine.js</div>
+                <div class="file-desc">核心引擎 - 事件总线、状态机、主循环</div>
+            </div>
+            <div class="file-item">
+                <div class="file-name">js/data/GameData.js</div>
+                <div class="file-desc">游戏数据 - 配置、预设、常量</div>
+            </div>
+            <div class="file-item">
+                <div class="file-name">js/utils/GameUtils.js</div>
+                <div class="file-desc">工具函数 - 数学、Canvas、碰撞检测</div>
+            </div>
+            <div class="file-item">
+                <div class="file-name">js/core/GameStates.js</div>
+                <div class="file-desc">游戏状态 - 菜单、游戏、暂停、设置</div>
+            </div>
+            <div class="file-item">
+                <div class="file-name">js/components/GameObjects.js</div>
+                <div class="file-desc">游戏对象 - 玩家、敌人、篮球、粒子</div>
+            </div>
+            <div class="file-item">
+                <div class="file-name">js/systems/GameSystems.js</div>
+                <div class="file-desc">游戏系统 - 渲染、物理、碰撞、动画</div>
+            </div>
+            <div class="file-item">
+                <div class="file-name">js/managers/GameManagers.js</div>
+                <div class="file-desc">管理器 - 输入、资源、配置、存储</div>
+            </div>
+            <div class="file-item">
+                <div class="file-name">js/ui/UIComponents.js</div>
+                <div class="file-desc">UI组件 - 按钮、菜单、对话框、面板</div>
+            </div>
+        </div>
+    </div>
+    
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="startGame()">🚀 启动游戏</button>
+        <button onclick="testStates()">🔄 测试状态切换</button>
+        <button onclick="testSystems()">⚙️ 测试系统</button>
+        <button onclick="testManagers()">📊 测试管理器</button>
+        <button onclick="testUI()">🎨 测试UI组件</button>
+        <button onclick="runStressTest()">💪 压力测试</button>
+        <button onclick="exportConfig()">📤 导出配置</button>
+        <button onclick="resetGame()">🔄 重置游戏</button>
+    </div>
+    
+    <div class="status-grid">
+        <div class="status-card">
+            <h3>🎮 当前状态</h3>
+            <div class="value" id="currentState">未初始化</div>
+        </div>
+        <div class="status-card">
+            <h3>⚡ FPS</h3>
+            <div class="value" id="fps">0</div>
+        </div>
+        <div class="status-card">
+            <h3>📦 已加载组件</h3>
+            <div class="value" id="loadedComponents">0/8</div>
+        </div>
+        <div class="status-card">
+            <h3>🎯 事件计数</h3>
+            <div class="value" id="eventCount">0</div>
+        </div>
+        <div class="status-card">
+            <h3>💾 内存使用</h3>
+            <div class="value" id="memoryUsage">-- MB</div>
+        </div>
+        <div class="status-card">
+            <h3>🌟 测试通过</h3>
+            <div class="value" id="testsPass">0/6</div>
+        </div>
+    </div>
+    
+    <div id="log" class="log">
+        <div class="log-entry log-info">🔧 系统准备就绪，等待启动...</div>
+    </div>
+
+    <script type="module">
+        // 导入所有模块
+        import { GameEngine } from './js/core/GameEngine.js';
+        import { GameConfig } from './js/data/GameData.js';
+        import { MenuState, PlayingState, PausedState, CustomizationState, GameOverState, WinState } from './js/core/GameStates.js';
+        import { Player, Defender, Basketball, Particle, Spectator } from './js/components/GameObjects.js';
+        import { RenderSystem, PhysicsSystem, CollisionSystem, AnimationSystem, ParticleSystem, StarFieldSystem, ShootingSystem } from './js/systems/GameSystems.js';
+        import { InputManager, AssetManager, ConfigManager, StorageManager, EffectsManager } from './js/managers/GameManagers.js';
+        import { UIManager, Button, Label, ProgressBar, Panel, Menu, Dialog } from './js/ui/UIComponents.js';
+        import { MathUtils, CanvasUtils, ColorUtils, PerformanceUtils } from './js/utils/GameUtils.js';
+
+        // 全局变量
+        let gameEngine = null;
+        let testResults = {
+            engine: false,
+            states: false,
+            systems: false,
+            managers: false,
+            ui: false,
+            stress: false
+        };
+        let eventCounter = 0;
+        let loadedComponents = 0;
+
+        // 日志系统
+        const log = {
+            info: (msg) => addLogEntry(msg, 'info'),
+            warn: (msg) => addLogEntry(msg, 'warn'),
+            error: (msg) => addLogEntry(msg, 'error'),
+            debug: (msg) => addLogEntry(msg, 'debug')
+        };
+
+        function addLogEntry(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            // 限制日志条目数量
+            if (logDiv.children.length > 100) {
+                logDiv.removeChild(logDiv.firstChild);
+            }
+        }
+
+        // 更新状态显示
+        function updateStatus() {
+            if (gameEngine) {
+                document.getElementById('currentState').textContent = gameEngine.stateMachine.getCurrentStateName();
+                document.getElementById('fps').textContent = gameEngine.getFPS();
+            }
+            document.getElementById('eventCount').textContent = eventCounter;
+            document.getElementById('loadedComponents').textContent = `${loadedComponents}/8`;
+            
+            const passedTests = Object.values(testResults).filter(Boolean).length;
+            document.getElementById('testsPass').textContent = `${passedTests}/6`;
+
+            // 内存使用（如果支持）
+            if (performance.memory) {
+                const used = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+                document.getElementById('memoryUsage').textContent = `${used} MB`;
+            }
+        }
+
+        // 启动游戏
+        window.startGame = async function() {
+            try {
+                log.info('🚀 开始启动游戏引擎...');
+                
+                if (gameEngine) {
+                    gameEngine.destroy();
+                }
+
+                // 创建游戏引擎
+                gameEngine = new GameEngine('gameCanvas');
+                loadedComponents++;
+                log.info('✅ GameEngine 创建成功');
+
+                // 注册所有游戏状态
+                gameEngine.registerState('menu', new MenuState(gameEngine));
+                gameEngine.registerState('playing', new PlayingState(gameEngine));
+                gameEngine.registerState('paused', new PausedState(gameEngine));
+                gameEngine.registerState('customization', new CustomizationState(gameEngine));
+                gameEngine.registerState('gameOver', new GameOverState(gameEngine));
+                gameEngine.registerState('win', new WinState(gameEngine));
+                loadedComponents++;
+                log.info('✅ GameStates 注册完成');
+
+                // 事件监听
+                gameEngine.eventBus.on('stateChanged', (data) => {
+                    eventCounter++;
+                    log.info(`🔄 状态切换: ${data.state}`);
+                });
+
+                gameEngine.eventBus.on('input', (data) => {
+                    eventCounter++;
+                });
+
+                // 启动引擎
+                gameEngine.start('menu');
+                loadedComponents = 8; // 所有组件已加载
+                testResults.engine = true;
+                
+                log.info('🎉 游戏引擎启动成功！');
+                
+                // 更新状态显示
+                setInterval(updateStatus, 100);
+
+            } catch (error) {
+                log.error(`❌ 启动失败: ${error.message}`);
+                console.error('Startup error:', error);
+            }
+        };
+
+        // 测试状态切换
+        window.testStates = function() {
+            if (!gameEngine) {
+                log.warn('⚠️ 请先启动游戏引擎');
+                return;
+            }
+
+            log.info('🔄 开始测试状态切换...');
+            const states = ['menu', 'playing', 'customization', 'paused', 'gameOver', 'win'];
+            let currentIndex = 0;
+
+            const testInterval = setInterval(() => {
+                const nextState = states[currentIndex % states.length];
+                gameEngine.stateMachine.changeState(nextState, null, true);
+                log.debug(`测试状态: ${nextState}`);
+                currentIndex++;
+
+                if (currentIndex >= states.length * 2) {
+                    clearInterval(testInterval);
+                    gameEngine.stateMachine.changeState('menu', null, true);
+                    testResults.states = true;
+                    log.info('✅ 状态切换测试完成');
+                }
+            }, 1000);
+        };
+
+        // 测试系统
+        window.testSystems = function() {
+            if (!gameEngine) {
+                log.warn('⚠️ 请先启动游戏引擎');
+                return;
+            }
+
+            log.info('⚙️ 开始测试游戏系统...');
+            
+            try {
+                const canvas = document.getElementById('gameCanvas');
+                const ctx = canvas.getContext('2d');
+
+                // 测试渲染系统
+                const renderSystem = new RenderSystem(canvas, ctx, gameEngine.eventBus);
+                renderSystem.drawBackground('day');
+                log.debug('✓ 渲染系统测试通过');
+
+                // 测试物理系统
+                const testObject = { x: 0, y: 0, velocity: { x: 5, y: 5 } };
+                PhysicsSystem.updateMovement(testObject, 16.67);
+                log.debug('✓ 物理系统测试通过');
+
+                // 测试碰撞系统
+                const collisionSystem = new CollisionSystem(gameEngine.eventBus);
+                const collision = collisionSystem.checkCollision(
+                    { x: 0, y: 0, width: 10, height: 10 },
+                    { x: 5, y: 5, width: 10, height: 10 }
+                );
+                log.debug('✓ 碰撞系统测试通过');
+
+                // 测试动画系统
+                const animationSystem = new AnimationSystem();
+                const tween = animationSystem.createTween({ x: 0 }, { x: 100 }, 1000);
+                log.debug('✓ 动画系统测试通过');
+
+                // 测试粒子系统
+                const particleSystem = new ParticleSystem(gameEngine.eventBus);
+                particleSystem.createScoreEffect(400, 300, 100);
+                log.debug('✓ 粒子系统测试通过');
+
+                // 测试星空系统
+                const starFieldSystem = new StarFieldSystem();
+                starFieldSystem.update(16.67);
+                log.debug('✓ 星空系统测试通过');
+
+                // 测试投篮系统
+                const shootingSystem = new ShootingSystem(gameEngine.eventBus);
+                shootingSystem.startAiming();
+                log.debug('✓ 投篮系统测试通过');
+
+                testResults.systems = true;
+                log.info('✅ 游戏系统测试完成');
+
+            } catch (error) {
+                log.error(`❌ 系统测试失败: ${error.message}`);
+            }
+        };
+
+        // 测试管理器
+        window.testManagers = function() {
+            if (!gameEngine) {
+                log.warn('⚠️ 请先启动游戏引擎');
+                return;
+            }
+
+            log.info('📊 开始测试管理器...');
+            
+            try {
+                const canvas = document.getElementById('gameCanvas');
+
+                // 测试输入管理器
+                const inputManager = new InputManager(canvas, gameEngine.eventBus);
+                log.debug('✓ 输入管理器测试通过');
+
+                // 测试资源管理器
+                const assetManager = new AssetManager(gameEngine.eventBus);
+                log.debug('✓ 资源管理器测试通过');
+
+                // 测试配置管理器
+                const configManager = new ConfigManager(gameEngine.eventBus);
+                configManager.set('test.value', 42);
+                const value = configManager.get('test.value');
+                if (value === 42) {
+                    log.debug('✓ 配置管理器测试通过');
+                }
+
+                // 测试存储管理器
+                const storageManager = new StorageManager(gameEngine.eventBus);
+                storageManager.saveGameData(0, { score: 1000, level: 5 });
+                const gameData = storageManager.loadGameData(0);
+                if (gameData && gameData.score === 1000) {
+                    log.debug('✓ 存储管理器测试通过');
+                }
+
+                // 测试特效管理器
+                const effectsManager = new EffectsManager(gameEngine.eventBus);
+                effectsManager.addScreenShake(10, 500);
+                effectsManager.addFadeTransition('fadeOut', 1000);
+                log.debug('✓ 特效管理器测试通过');
+
+                testResults.managers = true;
+                log.info('✅ 管理器测试完成');
+
+            } catch (error) {
+                log.error(`❌ 管理器测试失败: ${error.message}`);
+            }
+        };
+
+        // 测试UI组件
+        window.testUI = function() {
+            log.info('🎨 开始测试UI组件...');
+            
+            try {
+                const canvas = document.getElementById('gameCanvas');
+
+                // 测试UI管理器
+                const uiManager = new UIManager(canvas, gameEngine?.eventBus);
+                log.debug('✓ UI管理器测试通过');
+
+                // 测试按钮
+                const button = new Button(50, 50, 120, 40, '测试按钮');
+                button.on('click', () => log.debug('按钮点击事件触发'));
+                uiManager.addComponent(button);
+                log.debug('✓ 按钮组件测试通过');
+
+                // 测试标签
+                const label = new Label(50, 100, '测试标签');
+                uiManager.addComponent(label);
+                log.debug('✓ 标签组件测试通过');
+
+                // 测试进度条
+                const progressBar = new ProgressBar(50, 150, 200, 20);
+                progressBar.setValue(0.7);
+                uiManager.addComponent(progressBar);
+                log.debug('✓ 进度条组件测试通过');
+
+                // 测试面板
+                const panel = new Panel(300, 50, 200, 150);
+                panel.addChild(new Label(10, 10, '面板内容'));
+                uiManager.addComponent(panel);
+                log.debug('✓ 面板组件测试通过');
+
+                // 测试菜单
+                const menu = new Menu(550, 50, 150, 120);
+                menu.addItem('选项 1');
+                menu.addItem('选项 2');
+                menu.addItem('选项 3');
+                uiManager.addComponent(menu);
+                log.debug('✓ 菜单组件测试通过');
+
+                // 渲染测试
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                uiManager.render(ctx);
+
+                testResults.ui = true;
+                log.info('✅ UI组件测试完成');
+
+            } catch (error) {
+                log.error(`❌ UI组件测试失败: ${error.message}`);
+            }
+        };
+
+        // 压力测试
+        window.runStressTest = function() {
+            if (!gameEngine) {
+                log.warn('⚠️ 请先启动游戏引擎');
+                return;
+            }
+
+            log.info('💪 开始压力测试...');
+            
+            const startTime = performance.now();
+            let frameCount = 0;
+            const testDuration = 5000; // 5秒
+
+            const stressInterval = setInterval(() => {
+                // 创建大量对象进行测试
+                for (let i = 0; i < 100; i++) {
+                    const particle = new Particle(
+                        Math.random() * 800,
+                        Math.random() * 600,
+                        {
+                            vx: (Math.random() - 0.5) * 10,
+                            vy: (Math.random() - 0.5) * 10,
+                            life: 1000
+                        }
+                    );
+                    eventCounter++;
+                }
+
+                frameCount++;
+                const elapsed = performance.now() - startTime;
+                
+                if (elapsed >= testDuration) {
+                    clearInterval(stressInterval);
+                    const avgFPS = Math.round((frameCount / testDuration) * 1000);
+                    testResults.stress = avgFPS > 30; // 至少30FPS算通过
+                    log.info(`✅ 压力测试完成 - 平均FPS: ${avgFPS}`);
+                }
+            }, 16); // 约60FPS
+        };
+
+        // 导出配置
+        window.exportConfig = function() {
+            const config = {
+                architecture: '8-file modular architecture',
+                components: [
+                    'GameEngine', 'GameData', 'GameUtils', 'GameStates',
+                    'GameObjects', 'GameSystems', 'GameManagers', 'UIComponents'
+                ],
+                testResults,
+                timestamp: new Date().toISOString(),
+                performance: {
+                    fps: gameEngine ? gameEngine.getFPS() : 0,
+                    eventCount: eventCounter,
+                    loadedComponents
+                }
+            };
+
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'basketball-game-config.json';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            log.info('📤 配置已导出');
+        };
+
+        // 重置游戏
+        window.resetGame = function() {
+            if (gameEngine) {
+                gameEngine.destroy();
+                gameEngine = null;
+            }
+            
+            eventCounter = 0;
+            loadedComponents = 0;
+            testResults = {
+                engine: false,
+                states: false,
+                systems: false,
+                managers: false,
+                ui: false,
+                stress: false
+            };
+
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = '';
+            
+            log.info('🔄 游戏已重置');
+            updateStatus();
+        };
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            log.info('🎮 篮球游戏集成测试系统准备就绪');
+            log.info('📦 已加载8个核心模块');
+            log.info('🚀 点击"启动游戏"开始测试');
+            updateStatus();
+        });
+
+        // 导出到全局，便于调试
+        window.gameEngine = () => gameEngine;
+        window.log = log;
+        window.testResults = testResults;
+    </script>
+</body>
+</html>

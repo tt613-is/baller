@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>核心架构测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #333;
+            color: white;
+        }
+        
+        canvas {
+            border: 2px solid #666;
+            background: #000;
+            display: block;
+            margin: 20px auto;
+        }
+        
+        .info {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px;
+        }
+        
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h1>游戏引擎核心架构测试</h1>
+        <p>当前状态: <span id="currentState">未初始化</span></p>
+        <p>FPS: <span id="fps">0</span></p>
+        <p>事件总线测试: <span id="eventTest">等待测试</span></p>
+    </div>
+    
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+    
+    <div class="controls">
+        <button onclick="startEngine()">启动引擎</button>
+        <button onclick="testGameStates()">测试游戏状态</button>
+        <button onclick="testEvents()">测试事件系统</button>
+        <button onclick="stopEngine()">停止引擎</button>
+    </div>
+    
+    <div class="info">
+        <h3>测试说明：</h3>
+        <ul>
+            <li>点击"启动引擎"来初始化游戏引擎</li>
+            <li>点击"切换到测试状态"测试状态机</li>
+            <li>点击"测试事件系统"验证事件总线</li>
+            <li>观察Canvas中的动画和FPS计数器</li>
+        </ul>
+    </div>
+
+    <script type="module">
+        import { GameEngine, BaseState } from './js/core/GameEngine.js';
+        import { GameConfig } from './js/data/GameData.js';
+        import { MenuState, PlayingState, PausedState, CustomizationState, GameOverState, WinState } from './js/core/GameStates.js';
+
+        // 测试状态1 - 基础渲染
+        class TestState1 extends BaseState {
+            constructor(engine) {
+                super('test1', engine);
+                this.angle = 0;
+                this.particles = [];
+                this.createParticles();
+            }
+
+            createParticles() {
+                for (let i = 0; i < 50; i++) {
+                    this.particles.push({
+                        x: Math.random() * 800,
+                        y: Math.random() * 600,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2,
+                        color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+                        size: Math.random() * 3 + 1
+                    });
+                }
+            }
+
+            enter(data) {
+                console.log('进入测试状态1');
+                this.eventBus.emit('stateEntered', { state: 'test1' });
+            }
+
+            update(deltaTime) {
+                this.angle += 0.02;
+                
+                // 更新粒子
+                this.particles.forEach(particle => {
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    
+                    if (particle.x < 0 || particle.x > 800) particle.vx *= -1;
+                    if (particle.y < 0 || particle.y > 600) particle.vy *= -1;
+                });
+            }
+
+            render(ctx) {
+                // 渐变背景
+                const gradient = ctx.createLinearGradient(0, 0, 0, 600);
+                gradient.addColorStop(0, '#1a1a2e');
+                gradient.addColorStop(1, '#16213e');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 800, 600);
+
+                // 中心旋转圆
+                ctx.save();
+                ctx.translate(400, 300);
+                ctx.rotate(this.angle);
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, 50, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // 旋转的线条
+                for (let i = 0; i < 8; i++) {
+                    ctx.rotate(Math.PI / 4);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(40, 0);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // 粒子效果
+                this.particles.forEach(particle => {
+                    ctx.fillStyle = particle.color;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // 状态信息
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('测试状态 1 - 粒子动画', 400, 50);
+                
+                ctx.font = '16px Arial';
+                ctx.fillText('按任意键切换到测试状态2', 400, 550);
+            }
+
+            handleInput(input) {
+                if (input.type === 'keydown') {
+                    this.engine.stateMachine.changeState('test2', null, true);
+                }
+            }
+        }
+
+        // 测试状态2 - 交互测试
+        class TestState2 extends BaseState {
+            constructor(engine) {
+                super('test2', engine);
+                this.circles = [];
+                this.mousePos = { x: 400, y: 300 };
+            }
+
+            enter(data) {
+                console.log('进入测试状态2');
+                this.eventBus.emit('stateEntered', { state: 'test2' });
+            }
+
+            update(deltaTime) {
+                // 更新圆圈
+                this.circles = this.circles.filter(circle => {
+                    circle.life -= deltaTime;
+                    circle.radius += circle.growth * deltaTime / 16.67; // 60fps基准
+                    circle.alpha = circle.life / circle.maxLife;
+                    return circle.life > 0;
+                });
+            }
+
+            render(ctx) {
+                // 深色背景
+                ctx.fillStyle = '#0a0a0a';
+                ctx.fillRect(0, 0, 800, 600);
+
+                // 绘制圆圈
+                this.circles.forEach(circle => {
+                    ctx.save();
+                    ctx.globalAlpha = circle.alpha;
+                    ctx.strokeStyle = circle.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                });
+
+                // 鼠标跟随效果
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(this.mousePos.x, this.mousePos.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 状态信息
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('测试状态 2 - 交互测试', 400, 50);
+                
+                ctx.font = '16px Arial';
+                ctx.fillText('移动鼠标并点击创建涟漪效果', 400, 80);
+                ctx.fillText('按任意键返回测试状态1', 400, 550);
+            }
+
+            handleMouseMove(x, y) {
+                this.mousePos = { x, y };
+            }
+
+            handleMouseClick(x, y) {
+                // 创建涟漪效果
+                this.circles.push({
+                    x: x,
+                    y: y,
+                    radius: 0,
+                    growth: 2,
+                    life: 1000,
+                    maxLife: 1000,
+                    alpha: 1,
+                    color: `hsl(${Math.random() * 360}, 70%, 60%)`
+                });
+                
+                this.eventBus.emit('rippleCreated', { x, y });
+            }
+
+            handleInput(input) {
+                if (input.type === 'keydown') {
+                    this.engine.stateMachine.changeState('test1', null, true);
+                }
+            }
+        }
+
+        // 全局变量
+        let engine = null;
+
+        // 初始化函数
+        window.startEngine = function() {
+            if (engine) {
+                engine.destroy();
+            }
+
+            try {
+                engine = new GameEngine('testCanvas');
+                
+                // 注册游戏状态
+                engine.registerState('menu', new MenuState(engine));
+                engine.registerState('playing', new PlayingState(engine));
+                engine.registerState('paused', new PausedState(engine));
+                engine.registerState('customization', new CustomizationState(engine));
+                engine.registerState('gameOver', new GameOverState(engine));
+                engine.registerState('win', new WinState(engine));
+                
+                // 注册测试状态
+                engine.registerState('test1', new TestState1(engine));
+                engine.registerState('test2', new TestState2(engine));
+                
+                // 监听事件
+                engine.eventBus.on('stateChanged', (data) => {
+                    document.getElementById('currentState').textContent = data.state;
+                });
+                
+                engine.eventBus.on('stateEntered', (data) => {
+                    console.log(`状态已进入: ${data.state}`);
+                });
+                
+                engine.eventBus.on('rippleCreated', (data) => {
+                    console.log(`涟漪效果创建于: (${data.x}, ${data.y})`);
+                });
+                
+                // 启动引擎
+                engine.start('menu');
+                
+                // 更新FPS显示
+                setInterval(() => {
+                    if (engine) {
+                        document.getElementById('fps').textContent = engine.getFPS();
+                    }
+                }, 100);
+                
+                console.log('游戏引擎启动成功！');
+                
+            } catch (error) {
+                console.error('引擎启动失败:', error);
+                alert('引擎启动失败: ' + error.message);
+            }
+        };
+
+        window.testGameStates = function() {
+            if (engine) {
+                const currentState = engine.stateMachine.getCurrentStateName();
+                
+                // 循环测试不同的游戏状态
+                const states = ['menu', 'playing', 'customization', 'paused', 'test1', 'test2'];
+                const currentIndex = states.indexOf(currentState);
+                const nextIndex = (currentIndex + 1) % states.length;
+                const nextState = states[nextIndex];
+                
+                console.log(`从 ${currentState} 切换到 ${nextState}`);
+                engine.stateMachine.changeState(nextState, null, true);
+            }
+        };
+
+        window.testEvents = function() {
+            if (engine) {
+                // 测试事件系统
+                engine.eventBus.emit('testEvent', { message: '这是一个测试事件' });
+                
+                // 添加临时监听器
+                const testListener = (data) => {
+                    document.getElementById('eventTest').textContent = `事件接收: ${data.message}`;
+                    document.getElementById('eventTest').style.color = '#4CAF50';
+                };
+                
+                engine.eventBus.on('testEvent', testListener);
+                
+                // 3秒后移除监听器
+                setTimeout(() => {
+                    engine.eventBus.off('testEvent', testListener);
+                    document.getElementById('eventTest').textContent = '事件监听器已移除';
+                    document.getElementById('eventTest').style.color = '#ff9800';
+                }, 3000);
+            }
+        };
+
+        window.stopEngine = function() {
+            if (engine) {
+                engine.destroy();
+                engine = null;
+                document.getElementById('currentState').textContent = '已停止';
+                document.getElementById('fps').textContent = '0';
+                console.log('游戏引擎已停止');
+            }
+        };
+    </script>
+</body>
+</html>
