@@ -1,7 +1,33 @@
 class FrogBasketballGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
+        // 检查canvas元素是否存在
+        if (!this.canvas) {
+            throw new Error('Canvas element with id "gameCanvas" not found');
+        }
         this.ctx = this.canvas.getContext('2d');
+        if (!this.ctx) {
+            throw new Error('Failed to get 2D context from canvas');
+        }
+        
+        // 用于清理的标志
+        this.isDestroyed = false;
+        this.animationFrameId = null;
+        
+        // 绑定的事件处理器（用于后续移除）
+        this.boundHandlers = {
+            keydown: null,
+            keyup: null,
+            mousemove: null,
+            mousedown: null,
+            contextmenu: null
+        };
+        
+        // 性能优化 - 缓存静态内容
+        this.cachedGridPattern = null;
+        this.cachedGradients = {};
+        this.needsGridRedraw = true;
+        
         this.score = 0;
         this.gameRunning = false; // Start with menu instead of game
         this.gameWon = false;
@@ -563,7 +589,9 @@ class FrogBasketballGame {
     
     
     setupControls() {
-        document.addEventListener('keydown', (e) => {
+        // 创建绑定的事件处理器
+        this.boundHandlers.keydown = (e) => {
+            if (this.isDestroyed) return;
             this.keys[e.key] = true;
             
             // ESC键处理 - 暂停/恢复游戏
@@ -590,9 +618,10 @@ class FrogBasketballGame {
                     e.preventDefault();
                 }
             }
-        });
+        };
         
-        document.addEventListener('keyup', (e) => {
+        this.boundHandlers.keyup = (e) => {
+            if (this.isDestroyed) return;
             this.keys[e.key] = false;
             
             // 空格键松开处理
@@ -603,10 +632,10 @@ class FrogBasketballGame {
                 this.powerIndicator = 0;
                 e.preventDefault();
             }
-        });
+        };
         
-        // Mouse move event for button hover
-        this.canvas.addEventListener('mousemove', (e) => {
+        this.boundHandlers.mousemove = (e) => {
+            if (this.isDestroyed) return;
             const rect = this.canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
@@ -640,10 +669,10 @@ class FrogBasketballGame {
                                y >= btn.y && y <= btn.y + btn.height;
                 });
             }
-        });
+        };
         
-        // Mouse click event
-        this.canvas.addEventListener('click', (e) => {
+        this.boundHandlers.mousedown = (e) => {
+            if (this.isDestroyed) return;
             if (this.fadeState !== null) return;
             
             const rect = this.canvas.getBoundingClientRect();
@@ -661,13 +690,15 @@ class FrogBasketballGame {
                 });
                 
                 // Check secondary button clicks
-                Object.keys(this.secondaryButtons).forEach(key => {
-                    const btn = this.secondaryButtons[key];
-                    if (x >= btn.x && x <= btn.x + btn.width &&
-                        y >= btn.y && y <= btn.y + btn.height) {
-                        this.onSecondaryButtonClick(key);
-                    }
-                });
+                if (this.secondaryButtons) {
+                    Object.keys(this.secondaryButtons).forEach(key => {
+                        const btn = this.secondaryButtons[key];
+                        if (btn && x >= btn.x && x <= btn.x + btn.width &&
+                            y >= btn.y && y <= btn.y + btn.height) {
+                            this.onSecondaryButtonClick(key);
+                        }
+                    });
+                }
             } else if (this.gameState === 'paused') {
                 // Check pause menu button clicks
                 Object.keys(this.pauseMenuButtons).forEach(key => {
@@ -687,7 +718,13 @@ class FrogBasketballGame {
                     }
                 });
             }
-        });
+        };
+        
+        // 添加所有事件监听器
+        document.addEventListener('keydown', this.boundHandlers.keydown);
+        document.addEventListener('keyup', this.boundHandlers.keyup);
+        this.canvas.addEventListener('mousemove', this.boundHandlers.mousemove);
+        this.canvas.addEventListener('click', this.boundHandlers.mousedown);
     }
     
     resetShooting() {
@@ -951,10 +988,13 @@ class FrogBasketballGame {
             const dy = playerCenterY - wallCenterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            if (distance > 0) {
+            if (distance > 0.01) { // 避免除零，使用小的epsilon值
                 // 将玩家推离墙壁
                 this.player.x += (dx / distance) * 5;
                 this.player.y += (dy / distance) * 5;
+            } else {
+                // 如果距离太小，使用默认推回方向
+                this.player.y += 5; // 向下推
             }
             
             // 触发闪烁效果
@@ -1177,32 +1217,36 @@ class FrogBasketballGame {
             this.ctx.fillStyle = courtGradient;
             this.ctx.fillRect(0, this.height * 0.6, this.width, this.height * 0.4);
 
-            // 绘制木地板纹理线条
-            this.ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)'; // 半透明的深褐色
+            // 绘制木地板纹理线条 - 批量操作优化
+            this.ctx.strokeStyle = 'rgba(139, 69, 19, 0.3)';
             this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
             for (let i = 0; i < this.width; i += 60) {
-                this.ctx.beginPath();
                 this.ctx.moveTo(i, this.height * 0.6);
                 this.ctx.lineTo(i, this.height);
-                this.ctx.stroke();
             }
+            this.ctx.stroke();
 
             // 绘制球场线条 - 经典白色
             this.ctx.strokeStyle = '#FFFFFF';
             this.ctx.lineWidth = 4;
+            // 批量绘制实线
+            this.ctx.beginPath();
             this.lanes.forEach(lane => {
-                this.ctx.beginPath();
                 this.ctx.moveTo(0, lane.y + 25);
                 this.ctx.lineTo(this.width, lane.y + 25);
-                this.ctx.stroke();
-                
-                this.ctx.setLineDash([10, 10]);
-                this.ctx.beginPath();
+            });
+            this.ctx.stroke();
+            
+            // 批量绘制虚线
+            this.ctx.setLineDash([10, 10]);
+            this.ctx.beginPath();
+            this.lanes.forEach(lane => {
                 this.ctx.moveTo(0, lane.y - 25);
                 this.ctx.lineTo(this.width, lane.y - 25);
-                this.ctx.stroke();
-                this.ctx.setLineDash([]);
             });
+            this.ctx.stroke();
+            this.ctx.setLineDash([]);
         }
     }
     
@@ -1653,6 +1697,8 @@ class FrogBasketballGame {
     }
     
     gameLoop() {
+        if (this.isDestroyed) return;
+        
         this.update();
         this.render();
         
@@ -1663,7 +1709,7 @@ class FrogBasketballGame {
             }
         }
         
-        requestAnimationFrame(() => this.gameLoop());
+        this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
     }
 
     // --- Space 按钮：位置计算 ---
@@ -2430,27 +2476,44 @@ class FrogBasketballGame {
 
     // 换装系统方法
     loadAppearanceFromStorage() {
-        const saved = localStorage.getItem('playerAppearance');
-        if (saved) {
-            try {
+        try {
+            const saved = localStorage.getItem('playerAppearance');
+            if (saved) {
                 const appearance = JSON.parse(saved);
-                this.player.appearance = appearance;
-                this.customization.selectedIndices = {
-                    head: appearance.headIndex,
-                    jersey: appearance.jerseyIndex,
-                    number: appearance.numberIndex
-                };
-            } catch (e) {
-                console.log('Failed to load appearance from storage');
+                // 验证数据结构
+                if (appearance && 
+                    typeof appearance.headIndex === 'number' &&
+                    typeof appearance.jerseyIndex === 'number' &&
+                    typeof appearance.numberIndex === 'number') {
+                    
+                    // 验证索引范围
+                    if (appearance.headIndex >= 0 && appearance.headIndex < this.appearancePresets.heads.length &&
+                        appearance.jerseyIndex >= 0 && appearance.jerseyIndex < this.appearancePresets.jerseys.length &&
+                        appearance.numberIndex >= 0 && appearance.numberIndex < this.appearancePresets.numbers.length) {
+                        
+                        this.player.appearance = appearance;
+                        this.customization.selectedIndices = {
+                            head: appearance.headIndex,
+                            jersey: appearance.jerseyIndex,
+                            number: appearance.numberIndex
+                        };
+                    }
+                }
             }
+        } catch (e) {
+            // 静默失败，使用默认外观
+            // 在开发模式下可以使用: if (DEBUG) console.warn('Failed to load appearance:', e);
         }
     }
 
     saveAppearanceToStorage() {
         try {
-            localStorage.setItem('playerAppearance', JSON.stringify(this.player.appearance));
+            const data = JSON.stringify(this.player.appearance);
+            localStorage.setItem('playerAppearance', data);
         } catch (e) {
-            console.log('Failed to save appearance to storage');
+            // 静默失败 - localStorage可能已满或被禁用
+            // 可以向用户显示提示，但不影响游戏运行
+            // 在开发模式下可以使用: if (DEBUG) console.warn('Failed to save appearance:', e);
         }
     }
 
@@ -2483,20 +2546,17 @@ class FrogBasketballGame {
         this.ctx.fillStyle = bgGradient;
         this.ctx.fillRect(0, 0, this.width, this.height);
 
-        // 绘制装饰性网格背景
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-        this.ctx.lineWidth = 1;
-        for (let i = 0; i < this.width; i += 50) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(i, 0);
-            this.ctx.lineTo(i, this.height);
-            this.ctx.stroke();
+        // 绘制装饰性网格背景 - 使用缓存的图案
+        if (!this.cachedGridPattern || this.needsGridRedraw) {
+            this.createGridPattern();
+            this.needsGridRedraw = false;
         }
-        for (let i = 0; i < this.height; i += 50) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, i);
-            this.ctx.lineTo(this.width, i);
-            this.ctx.stroke();
+        
+        if (this.cachedGridPattern) {
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.05;
+            this.ctx.drawImage(this.cachedGridPattern, 0, 0);
+            this.ctx.restore();
         }
 
         // 绘制主标题 - 居中对称
@@ -2505,9 +2565,12 @@ class FrogBasketballGame {
         this.ctx.shadowBlur = 15;
         this.ctx.shadowOffsetY = 3;
         
-        const titleGradient = this.ctx.createLinearGradient(0, 50, 0, 90);
-        titleGradient.addColorStop(0, '#FFD700');
-        titleGradient.addColorStop(1, '#FFA500');
+        const titleGradient = this.getCachedGradient('customizationTitle', () => {
+            const grad = this.ctx.createLinearGradient(0, 50, 0, 90);
+            grad.addColorStop(0, '#FFD700');
+            grad.addColorStop(1, '#FFA500');
+            return grad;
+        });
         this.ctx.fillStyle = titleGradient;
         this.ctx.font = 'bold 32px Arial';
         this.ctx.textAlign = 'center';
@@ -2774,21 +2837,34 @@ class FrogBasketballGame {
 
     drawCurrentSelection() {
         const category = this.customization.selectedCategory;
-        const currentIndex = this.customization.selectedIndices[category];
+        let currentIndex = this.customization.selectedIndices[category] || 0;
         let currentData, totalCount;
 
         switch (category) {
             case 'head':
-                currentData = this.appearancePresets.heads[currentIndex];
                 totalCount = this.appearancePresets.heads.length;
+                // 确保索引在有效范围内
+                currentIndex = Math.max(0, Math.min(currentIndex, totalCount - 1));
+                this.customization.selectedIndices[category] = currentIndex;
+                currentData = this.appearancePresets.heads[currentIndex];
                 break;
             case 'jersey':
-                currentData = this.appearancePresets.jerseys[currentIndex];
                 totalCount = this.appearancePresets.jerseys.length;
+                currentIndex = Math.max(0, Math.min(currentIndex, totalCount - 1));
+                this.customization.selectedIndices[category] = currentIndex;
+                currentData = this.appearancePresets.jerseys[currentIndex];
                 break;
             case 'number':
-                currentData = this.appearancePresets.numbers[currentIndex];
                 totalCount = this.appearancePresets.numbers.length;
+                currentIndex = Math.max(0, Math.min(currentIndex, totalCount - 1));
+                this.customization.selectedIndices[category] = currentIndex;
+                currentData = this.appearancePresets.numbers[currentIndex];
+                break;
+            default:
+                // 默认值防止未定义的类别
+                currentData = '';
+                totalCount = 0;
+                currentIndex = 0;
                 break;
         }
 
@@ -2801,7 +2877,7 @@ class FrogBasketballGame {
         this.ctx.fillText(`${categoryText}:`, this.width / 2, 250);
         
         this.ctx.font = '18px Arial';
-        const name = typeof currentData === 'string' ? currentData : currentData.name;
+        const name = currentData ? (typeof currentData === 'string' ? currentData : currentData.name) : 'None';
         this.ctx.fillText(name, this.width / 2, 280);
         
         this.ctx.font = '14px Arial';
@@ -2973,21 +3049,32 @@ class FrogBasketballGame {
 
     drawCurrentSelectionInPanel(centerX, y) {
         const category = this.customization.selectedCategory;
-        const currentIndex = this.customization.selectedIndices[category];
+        let currentIndex = this.customization.selectedIndices[category] || 0;
         let currentData, totalCount;
 
         switch (category) {
             case 'head':
-                currentData = this.appearancePresets.heads[currentIndex];
                 totalCount = this.appearancePresets.heads.length;
+                currentIndex = Math.max(0, Math.min(currentIndex, totalCount - 1));
+                this.customization.selectedIndices[category] = currentIndex;
+                currentData = this.appearancePresets.heads[currentIndex];
                 break;
             case 'jersey':
-                currentData = this.appearancePresets.jerseys[currentIndex];
                 totalCount = this.appearancePresets.jerseys.length;
+                currentIndex = Math.max(0, Math.min(currentIndex, totalCount - 1));
+                this.customization.selectedIndices[category] = currentIndex;
+                currentData = this.appearancePresets.jerseys[currentIndex];
                 break;
             case 'number':
-                currentData = this.appearancePresets.numbers[currentIndex];
                 totalCount = this.appearancePresets.numbers.length;
+                currentIndex = Math.max(0, Math.min(currentIndex, totalCount - 1));
+                this.customization.selectedIndices[category] = currentIndex;
+                currentData = this.appearancePresets.numbers[currentIndex];
+                break;
+            default:
+                currentData = '';
+                totalCount = 0;
+                currentIndex = 0;
                 break;
         }
 
@@ -3000,7 +3087,7 @@ class FrogBasketballGame {
         this.ctx.fillText(`Current ${categoryText}:`, centerX, y);
         
         this.ctx.font = '16px Arial';
-        const name = typeof currentData === 'string' ? currentData : currentData.name;
+        const name = currentData ? (typeof currentData === 'string' ? currentData : currentData.name) : 'None';
         this.ctx.fillText(name, centerX, y + this.spacing.text.labelOffset);
         
         this.ctx.font = '14px Arial';
@@ -3176,13 +3263,93 @@ class FrogBasketballGame {
             btn.height = 50;
         });
     }
+    
+    // 性能优化方法 - 创建网格图案缓存
+    createGridPattern() {
+        // 创建离屏画布用于网格图案
+        const gridCanvas = document.createElement('canvas');
+        gridCanvas.width = this.width;
+        gridCanvas.height = this.height;
+        const gridCtx = gridCanvas.getContext('2d');
+        
+        // 绘制网格线到离屏画布
+        gridCtx.strokeStyle = '#FFFFFF';
+        gridCtx.lineWidth = 1;
+        gridCtx.beginPath();
+        
+        // 垂直线
+        for (let i = 0; i < this.width; i += 50) {
+            gridCtx.moveTo(i, 0);
+            gridCtx.lineTo(i, this.height);
+        }
+        
+        // 水平线
+        for (let i = 0; i < this.height; i += 50) {
+            gridCtx.moveTo(0, i);
+            gridCtx.lineTo(this.width, i);
+        }
+        
+        gridCtx.stroke();
+        this.cachedGridPattern = gridCanvas;
+    }
+    
+    // 缓存渐变对象
+    getCachedGradient(key, createFunction) {
+        if (!this.cachedGradients[key]) {
+            this.cachedGradients[key] = createFunction();
+        }
+        return this.cachedGradients[key];
+    }
+    
+    // 清理方法 - 移除所有事件监听器并取消动画帧
+    destroy() {
+        this.isDestroyed = true;
+        
+        // 取消动画帧
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        
+        // 移除事件监听器
+        if (this.boundHandlers.keydown) {
+            document.removeEventListener('keydown', this.boundHandlers.keydown);
+        }
+        if (this.boundHandlers.keyup) {
+            document.removeEventListener('keyup', this.boundHandlers.keyup);
+        }
+        if (this.boundHandlers.mousemove) {
+            this.canvas.removeEventListener('mousemove', this.boundHandlers.mousemove);
+        }
+        if (this.boundHandlers.mousedown) {
+            this.canvas.removeEventListener('click', this.boundHandlers.mousedown);
+        }
+        
+        // 清空所有数组以释放内存
+        this.particles = [];
+        this.defenders = [];
+        this.audience = [];
+        this.starField = [];
+        this.scorePopups = [];
+        
+        // 清空缓存
+        this.cachedGridPattern = null;
+        this.cachedGradients = {};
+        
+        // 清空按键状态
+        this.keys = {};
+    }
 }
 
-// 全局函数
-function restartGame() {
-    game.restart();
-}
+// 使用立即执行函数避免全局变量污染
+(function() {
+    // 全局函数 - 仅暴露必要的接口
+    window.restartGame = function() {
+        if (window.frogBasketballGame) {
+            window.frogBasketballGame.restart();
+        }
+    };
 
-// 初始化游戏
-const game = new FrogBasketballGame();
-window.game = game;
+    // 初始化游戏 - 使用更具体的命名避免冲突
+    window.frogBasketballGame = new FrogBasketballGame();
+})();
