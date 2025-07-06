@@ -122,7 +122,22 @@
         body.day-theme button:hover {
             background: var(--day-button-hover-bg);
         }
-
+        
+        /* 游戏特效动画 */
+        .screen-flash {
+            filter: brightness(1.3);
+            transition: filter 0.1s ease;
+        }
+        
+        .screen-shake {
+            animation: shake 0.1s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
 
     </style>
 </head>
