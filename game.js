@@ -1,4 +1,27 @@
 class FrogBasketballGame {
+    // 游戏常量定义
+    static CONSTANTS = {
+        WINNING_SCORE: 50,
+        ANIMATION_SPEED: 60,
+        PARTICLE_LIFETIME: 60,
+        WALL_FLASH_DURATION: 30,
+        SPACE_BUTTON_INTERVAL: 350, // 10秒 * 35帧/秒
+        MISSED_COUNTDOWN_FRAMES: 120, // 2秒 * 60帧/秒
+        TELEPORT_DURATION: 30,
+        DEFENDER_SPEED_INCREASE: 0.1,
+        CANVAS_WIDTH: 800,
+        CANVAS_HEIGHT: 600,
+        PLAYER_SPEED: 3,
+        PLAYER_WIDTH: 40,
+        PLAYER_HEIGHT: 50,
+        BASKET_WIDTH: 50,
+        BASKET_HEIGHT: 10,
+        CELEBRATION_DELAY: 3000, // 3秒
+        FIREWORK_INTERVAL: 400, // 烟花间隔
+        SCORE_PER_BASKET: 10,
+        SCORE_PER_SHOT: 2
+    };
+    
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         // 检查canvas元素是否存在
@@ -10,9 +33,21 @@ class FrogBasketballGame {
             throw new Error('Failed to get 2D context from canvas');
         }
         
+        // 处理canvas上下文丢失
+        this.canvas.addEventListener('webglcontextlost', this.handleContextLost.bind(this));
+        this.canvas.addEventListener('webglcontextrestored', this.handleContextRestored.bind(this));
+        
         // 用于清理的标志
         this.isDestroyed = false;
         this.animationFrameId = null;
+        this.contextLost = false;
+        
+        // 定时器ID追踪（用于清理）
+        this.timeoutIds = [];
+        
+        // DOM更新队列
+        this.domUpdateQueue = [];
+        this.domUpdateScheduled = false;
         
         // 绑定的事件处理器（用于后续移除）
         this.boundHandlers = {
@@ -32,7 +67,7 @@ class FrogBasketballGame {
         this.gameRunning = false; // Start with menu instead of game
         this.gameWon = false;
         this.isCelebrating = false;
-        this.winningScore = 50; // 达到50分胜利
+        this.winningScore = FrogBasketballGame.CONSTANTS.WINNING_SCORE; // 达到50分胜利
         this.animationFrame = 0;
         this.theme = 'day'; // 'night' or 'day'
         
@@ -171,9 +206,9 @@ class FrogBasketballGame {
         this.player = {
             x: this.width / 2,
             y: 520,
-            width: 40,
-            height: 50,
-            speed: 3,
+            width: FrogBasketballGame.CONSTANTS.PLAYER_WIDTH,
+            height: FrogBasketballGame.CONSTANTS.PLAYER_HEIGHT,
+            speed: FrogBasketballGame.CONSTANTS.PLAYER_SPEED,
             animFrame: 0,
             animSpeed: 8,
             dribbling: true,
@@ -191,10 +226,10 @@ class FrogBasketballGame {
         
         // 篮筐设置
         this.basket = { // 这个对象现在是得分触发器
-            x: this.width / 2 - 25,
+            x: this.width / 2 - FrogBasketballGame.CONSTANTS.BASKET_WIDTH / 2,
             y: 120,
-            width: 50,
-            height: 10
+            width: FrogBasketballGame.CONSTANTS.BASKET_WIDTH,
+            height: FrogBasketballGame.CONSTANTS.BASKET_HEIGHT
         };
         
         // 篮板和篮圈的视觉设置
@@ -589,6 +624,9 @@ class FrogBasketballGame {
     
     
     setupControls() {
+        // 先移除可能存在的事件监听器
+        this.removeEventListeners();
+        
         // 创建绑定的事件处理器
         this.boundHandlers.keydown = (e) => {
             if (this.isDestroyed) return;
@@ -727,6 +765,72 @@ class FrogBasketballGame {
         this.canvas.addEventListener('click', this.boundHandlers.mousedown);
     }
     
+    removeEventListeners() {
+        // 移除现有事件监听器
+        if (this.boundHandlers.keydown) {
+            document.removeEventListener('keydown', this.boundHandlers.keydown);
+        }
+        if (this.boundHandlers.keyup) {
+            document.removeEventListener('keyup', this.boundHandlers.keyup);
+        }
+        if (this.boundHandlers.mousemove) {
+            this.canvas.removeEventListener('mousemove', this.boundHandlers.mousemove);
+        }
+        if (this.boundHandlers.mousedown) {
+            this.canvas.removeEventListener('click', this.boundHandlers.mousedown);
+        }
+    }
+    
+    handleContextLost(event) {
+        // 阻止默认行为
+        event.preventDefault();
+        
+        // 暂停游戏
+        if (this.gameState === 'playing') {
+            this.pauseGame();
+        }
+        
+        // 标记上下文丢失
+        this.contextLost = true;
+        
+        console.warn('Canvas context lost');
+    }
+    
+    handleContextRestored(event) {
+        // 重新获取上下文
+        this.ctx = this.canvas.getContext('2d');
+        
+        // 清除缓存的图形对象
+        this.cachedGridPattern = null;
+        this.cachedGradients = {};
+        this.needsGridRedraw = true;
+        
+        // 恢复上下文状态
+        this.contextLost = false;
+        
+        console.log('Canvas context restored');
+    }
+    
+    scheduleScoreUpdate(newScore) {
+        // 将DOM更新加入队列
+        this.domUpdateQueue.push(() => {
+            document.getElementById('score').textContent = newScore;
+        });
+        
+        // 如果还没有安排DOM更新，安排一个
+        if (!this.domUpdateScheduled) {
+            this.domUpdateScheduled = true;
+            requestAnimationFrame(() => this.processDOMUpdates());
+        }
+    }
+    
+    processDOMUpdates() {
+        // 批量处理所有DOM更新
+        this.domUpdateQueue.forEach(updateFn => updateFn());
+        this.domUpdateQueue = [];
+        this.domUpdateScheduled = false;
+    }
+    
     resetShooting() {
         this.shootingPhase = null;
         this.aimAngle = 0;
@@ -790,7 +894,7 @@ class FrogBasketballGame {
         this.gameRunning = true;
         this.score = 0;
         this.animationFrame = 0;
-        document.getElementById('score').textContent = '0';
+        this.scheduleScoreUpdate(0);
         
         // Reset all game elements
         this.player.x = this.width / 2;
@@ -814,7 +918,7 @@ class FrogBasketballGame {
         this.gameRunning = false;
         this.score = 0;
         this.animationFrame = 0;
-        document.getElementById('score').textContent = '0';
+        this.scheduleScoreUpdate(0);
         
         // Reset pause menu button hover states
         Object.keys(this.pauseMenuButtons).forEach(key => {
@@ -858,7 +962,7 @@ class FrogBasketballGame {
         this.gameRunning = true;
         this.score = 0;
         this.animationFrame = 0;
-        document.getElementById('score').textContent = '0';
+        this.scheduleScoreUpdate(0);
         
         // Reset all game elements
         this.player.x = this.width / 2;
@@ -1010,8 +1114,8 @@ class FrogBasketballGame {
             // 庆祝期间防止重复计分和重置
             if (this.isCelebrating) return;
 
-            this.score += 10;
-            document.getElementById('score').textContent = this.score;
+            this.score += FrogBasketballGame.CONSTANTS.SCORE_PER_BASKET;
+            this.scheduleScoreUpdate(this.score);
             
             // 共同的庆祝效果
             this.createScoreEffect(this.basket.x + this.basket.width / 2, this.basket.y);
@@ -1029,13 +1133,15 @@ class FrogBasketballGame {
                 
                 // 来一波更盛大的烟花庆祝
                 for(let i = 0; i < 5; i++) {
-                    setTimeout(() => this.createFireworks(), i * 400);
+                    const timeoutId = setTimeout(() => this.createFireworks(), i * FrogBasketballGame.CONSTANTS.FIREWORK_INTERVAL);
+                    this.timeoutIds.push(timeoutId);
                 }
                 
                 // 3秒后触发胜利画面
-                setTimeout(() => {
+                const winTimeoutId = setTimeout(() => {
                     this.winGame();
-                }, 3000);
+                }, FrogBasketballGame.CONSTANTS.CELEBRATION_DELAY);
+                this.timeoutIds.push(winTimeoutId);
             } else {
                  // 如果未胜利，则正常重置玩家位置继续游戏
                  this.player.x = this.width / 2;
@@ -1047,7 +1153,7 @@ class FrogBasketballGame {
     increaseDifficulty() {
         // 随着得分增加，防守队员移动速度加快
         this.defenders.forEach(defender => {
-            defender.speed += 0.1;
+            defender.speed += FrogBasketballGame.CONSTANTS.DEFENDER_SPEED_INCREASE;
         });
     }
     
@@ -1111,21 +1217,20 @@ class FrogBasketballGame {
         // 模拟音效（由于是纯前端实现，这里用视觉反馈代替）
         switch (type) {
             case 'score':
-                // 创建屏幕闪烁效果
-                this.canvas.style.filter = 'brightness(1.3)';
-                setTimeout(() => {
-                    this.canvas.style.filter = 'none';
+                // 使用CSS类创建屏幕闪烁效果
+                this.canvas.classList.add('screen-flash');
+                const scoreTimeoutId = setTimeout(() => {
+                    this.canvas.classList.remove('screen-flash');
                 }, 100);
+                this.timeoutIds.push(scoreTimeoutId);
                 break;
             case 'collision':
-                // 创建震动效果
-                this.canvas.style.transform = 'translateX(5px)';
-                setTimeout(() => {
-                    this.canvas.style.transform = 'translateX(-5px)';
-                    setTimeout(() => {
-                        this.canvas.style.transform = 'none';
-                    }, 50);
-                }, 50);
+                // 使用CSS类创建震动效果
+                this.canvas.classList.add('screen-shake');
+                const collisionTimeoutId = setTimeout(() => {
+                    this.canvas.classList.remove('screen-shake');
+                }, 100);
+                this.timeoutIds.push(collisionTimeoutId);
                 break;
         }
     }
@@ -1156,22 +1261,28 @@ class FrogBasketballGame {
     
     drawBackground() {
         if (this.theme === 'night') {
-            // 绘制渐变夜空背景
-            const gradient = this.ctx.createRadialGradient(
-                this.width/2, this.height/4, 0,
-                this.width/2, this.height/4, this.width
-            );
-            gradient.addColorStop(0, '#1a1a2e'); // 深紫色中心
-            gradient.addColorStop(0.5, '#16213e'); // 深蓝色
-            gradient.addColorStop(1, '#0f0f23'); // 深夜色
+            // 使用缓存的渐变夜空背景
+            const gradient = this.getCachedGradient('nightSky', () => {
+                const grad = this.ctx.createRadialGradient(
+                    this.width/2, this.height/4, 0,
+                    this.width/2, this.height/4, this.width
+                );
+                grad.addColorStop(0, '#1a1a2e'); // 深紫色中心
+                grad.addColorStop(0.5, '#16213e'); // 深蓝色
+                grad.addColorStop(1, '#0f0f23'); // 深夜色
+                return grad;
+            });
             
             this.ctx.fillStyle = gradient;
             this.ctx.fillRect(0, 0, this.width, this.height);
             
-            // 绘制球场地面
-            const courtGradient = this.ctx.createLinearGradient(0, this.height * 0.6, 0, this.height);
-            courtGradient.addColorStop(0, '#2d5016'); // 深绿色
-            courtGradient.addColorStop(1, '#1a3009'); // 更深的绿色
+            // 使用缓存的球场地面渐变
+            const courtGradient = this.getCachedGradient('nightCourt', () => {
+                const grad = this.ctx.createLinearGradient(0, this.height * 0.6, 0, this.height);
+                grad.addColorStop(0, '#2d5016'); // 深绿色
+                grad.addColorStop(1, '#1a3009'); // 更深的绿色
+                return grad;
+            });
             
             this.ctx.fillStyle = courtGradient;
             this.ctx.fillRect(0, this.height * 0.6, this.width, this.height * 0.4);
@@ -1201,18 +1312,24 @@ class FrogBasketballGame {
             this.ctx.shadowBlur = 0;
         } else {
             // Day theme - 室内篮球场风格
-            // 绘制室内背景墙 - 木质风格
-            const wallGradient = this.ctx.createLinearGradient(0, 0, 0, this.height * 0.6);
-            wallGradient.addColorStop(0, '#DEB887'); // 浅木色
-            wallGradient.addColorStop(1, '#D2B48C'); // 棕褐色
+            // 使用缓存的室内背景墙渐变
+            const wallGradient = this.getCachedGradient('dayWall', () => {
+                const grad = this.ctx.createLinearGradient(0, 0, 0, this.height * 0.6);
+                grad.addColorStop(0, '#DEB887'); // 浅木色
+                grad.addColorStop(1, '#D2B48C'); // 棕褐色
+                return grad;
+            });
             
             this.ctx.fillStyle = wallGradient;
             this.ctx.fillRect(0, 0, this.width, this.height * 0.6);
 
-            // 绘制篮球场木地板 - 参考图片配色
-            const courtGradient = this.ctx.createLinearGradient(0, this.height * 0.6, 0, this.height);
-            courtGradient.addColorStop(0, '#CD853F'); // 秘鲁色 - 更接近真实篮球场
-            courtGradient.addColorStop(1, '#A0522D'); // 黄褐色
+            // 使用缓存的篮球场木地板渐变
+            const courtGradient = this.getCachedGradient('dayCourt', () => {
+                const grad = this.ctx.createLinearGradient(0, this.height * 0.6, 0, this.height);
+                grad.addColorStop(0, '#CD853F'); // 秘鲁色 - 更接近真实篮球场
+                grad.addColorStop(1, '#A0522D'); // 黄褐色
+                return grad;
+            });
             
             this.ctx.fillStyle = courtGradient;
             this.ctx.fillRect(0, this.height * 0.6, this.width, this.height * 0.4);
@@ -1652,7 +1769,7 @@ class FrogBasketballGame {
             this.gameState = 'menu';
             this.score = 0;
             this.animationFrame = 0;
-            document.getElementById('score').textContent = '0';
+            this.scheduleScoreUpdate(0);
             document.getElementById('gameOver').style.display = 'none';
             
             // 重置玩家位置
@@ -1726,7 +1843,7 @@ class FrogBasketballGame {
     // --- Space 按钮：计时与切换 ---
     updateSpaceButton() {
         this.spaceButtonTimer++;
-        const intervalFrames = 350; // 10秒 * 60fps
+        const intervalFrames = FrogBasketballGame.CONSTANTS.SPACE_BUTTON_INTERVAL; // 10秒 * 35帧/秒
         if (this.spaceButtonTimer >= intervalFrames) {
             // 切换左右半区
             this.spaceButtonSide = this.spaceButtonSide === 'left' ? 'right' : 'left';
@@ -1789,8 +1906,8 @@ class FrogBasketballGame {
 
             // 检查篮球是否进筐
             if (this.isBasketballInHoop()) {
-                this.score += 2;
-                document.getElementById('score').textContent = this.score;
+                this.score += FrogBasketballGame.CONSTANTS.SCORE_PER_SHOT;
+                this.scheduleScoreUpdate(this.score);
                 this.createScoreEffect(this.basket.x + this.basket.width / 2, this.basket.y);
                 this.triggerAudienceCheer();
                 this.basketball = null;
@@ -1806,11 +1923,13 @@ class FrogBasketballGame {
                     this.isCelebrating = true;
                     this.gameRunning = false;
                     for(let i = 0; i < 5; i++) {
-                        setTimeout(() => this.createFireworks(), i * 400);
+                        const fireworkTimeoutId = setTimeout(() => this.createFireworks(), i * FrogBasketballGame.CONSTANTS.FIREWORK_INTERVAL);
+                        this.timeoutIds.push(fireworkTimeoutId);
                     }
-                    setTimeout(() => {
+                    const winTimeoutId = setTimeout(() => {
                         this.winGame();
-                    }, 3000);
+                    }, FrogBasketballGame.CONSTANTS.CELEBRATION_DELAY);
+                    this.timeoutIds.push(winTimeoutId);
                 }
             }
             // 篮球飞出屏幕或落地则移除，并重置玩家位置（投篮失败）
@@ -1915,7 +2034,7 @@ class FrogBasketballGame {
     // 开始投篮失败重置效果
     startMissedEffect() {
         this.missedState = 'countdown';
-        this.missedCountdown = 120; // 2秒 * 60帧/秒 (从3秒改为2秒)
+        this.missedCountdown = FrogBasketballGame.CONSTANTS.MISSED_COUNTDOWN_FRAMES; // 2秒 * 60帧/秒 (从3秒改为2秒)
         this.missedCountdownValue = 3;
         // 记录玩家当前位置作为传送起点
         this.teleportEffect.sourceCircle.x = this.player.x + this.player.width / 2;
@@ -2933,15 +3052,19 @@ class FrogBasketballGame {
             case 'prev':
                 // 上一个选项
                 let maxCount = this.getMaxCountForCategory(category);
-                this.customization.selectedIndices[category] = 
-                    (currentIndex - 1 + maxCount) % maxCount;
+                if (maxCount > 0) {
+                    this.customization.selectedIndices[category] = 
+                        (currentIndex - 1 + maxCount) % maxCount;
+                }
                 break;
                 
             case 'next':
                 // 下一个选项
                 let maxCount2 = this.getMaxCountForCategory(category);
-                this.customization.selectedIndices[category] = 
-                    (currentIndex + 1) % maxCount2;
+                if (maxCount2 > 0) {
+                    this.customization.selectedIndices[category] = 
+                        (currentIndex + 1) % maxCount2;
+                }
                 break;
                 
             case 'apply':
@@ -3310,6 +3433,10 @@ class FrogBasketballGame {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
+        
+        // 清理所有定时器
+        this.timeoutIds.forEach(id => clearTimeout(id));
+        this.timeoutIds = [];
         
         // 移除事件监听器
         if (this.boundHandlers.keydown) {
