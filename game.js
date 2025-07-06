@@ -20,7 +20,7 @@ class FrogBasketballGame {
         this.fadeAlpha = 0;
         this.fadeCallback = null;
         
-        // Menu buttons
+        // Menu buttons - main game mode buttons
         this.menuButtons = {
             normal: {
                 x: 0, // Will be calculated
@@ -37,13 +37,25 @@ class FrogBasketballGame {
                 height: 60,
                 text: 'Hardcore',
                 hover: false
-            },
+            }
+        };
+        
+        // Secondary menu buttons - positioned in corners
+        this.secondaryButtons = {
             customize: {
-                x: 0, // Will be calculated
-                y: 440,
-                width: 200,
-                height: 60,
+                x: 30, // Left bottom corner
+                y: 0, // Will be calculated
+                width: 120,
+                height: 40,
                 text: 'Customize',
+                hover: false
+            },
+            themeToggle: {
+                x: 0, // Will be calculated - right bottom corner
+                y: 0, // Will be calculated
+                width: 100,
+                height: 40,
+                text: this.theme === 'day' ? 'Day' : 'Night',
                 hover: false
             }
         };
@@ -109,19 +121,22 @@ class FrogBasketballGame {
         this.lockedAngle = 0; // 锁定的角度
         this.maxPowerDistance = 100; // 力度指示器最大距离
         
+        // 响应式间距系统
+        this.spacing = this.calculateResponsiveSpacing();
+        
         // 外观预设数据
         this.appearancePresets = {
             heads: [
-                { name: "经典", skinColor: "#FFDBAC", hairColor: "#3A2A1A", hairStyle: "classic" },
-                { name: "金发", skinColor: "#FFDBAC", hairColor: "#FFD700", hairStyle: "spiky" },
-                { name: "深色", skinColor: "#8B4513", hairColor: "#000000", hairStyle: "curly" },
-                { name: "白皮", skinColor: "#FFEAA7", hairColor: "#FFFFFF", hairStyle: "long" }
+                { name: "Classic", skinColor: "#FFDBAC", hairColor: "#3A2A1A", hairStyle: "classic" },
+                { name: "Blonde", skinColor: "#FFDBAC", hairColor: "#FFD700", hairStyle: "spiky" },
+                { name: "Dark", skinColor: "#8B4513", hairColor: "#000000", hairStyle: "curly" },
+                { name: "Light", skinColor: "#FFEAA7", hairColor: "#FFFFFF", hairStyle: "long" }
             ],
             jerseys: [
-                { name: "经典蓝", color1: "#00529B", color2: "#FFD700" },
-                { name: "火焰红", color1: "#FF4444", color2: "#FF8888" },
-                { name: "森林绿", color1: "#228B22", color2: "#90EE90" },
-                { name: "紫罗兰", color1: "#8A2BE2", color2: "#DDA0DD" }
+                { name: "Classic Blue", color1: "#00529B", color2: "#FFD700" },
+                { name: "Flame Red", color1: "#FF4444", color2: "#FF8888" },
+                { name: "Forest Green", color1: "#228B22", color2: "#90EE90" },
+                { name: "Violet", color1: "#8A2BE2", color2: "#DDA0DD" }
             ],
             numbers: ["1", "23", "88", "99", "7", "11", "33", "77"]
         };
@@ -216,34 +231,34 @@ class FrogBasketballGame {
             previewPlayer: null
         };
 
-        // 换装界面按钮
+        // 换装界面按钮 - 重新布局
         this.customizationButtons = {
             head: {
-                x: 50, y: 150, width: 120, height: 40,
+                x: 50, y: 120, width: 120, height: 40,
                 text: 'Head', hover: false, active: true
             },
             jersey: {
-                x: 180, y: 150, width: 120, height: 40,
+                x: 180, y: 120, width: 120, height: 40,
                 text: 'Jersey', hover: false, active: false
             },
             number: {
-                x: 310, y: 150, width: 120, height: 40,
+                x: 310, y: 120, width: 120, height: 40,
                 text: 'Number', hover: false, active: false
             },
             prev: {
-                x: 150, y: 250, width: 80, height: 40,
+                x: 120, y: 180, width: 80, height: 40,
                 text: '< Prev', hover: false
             },
             next: {
-                x: 250, y: 250, width: 80, height: 40,
+                x: 280, y: 180, width: 80, height: 40,
                 text: 'Next >', hover: false
             },
             apply: {
-                x: 150, y: 450, width: 100, height: 50,
+                x: 120, y: 560, width: 100, height: 50,
                 text: 'Apply', hover: false
             },
             cancel: {
-                x: 270, y: 450, width: 100, height: 50,
+                x: 260, y: 560, width: 100, height: 50,
                 text: 'Cancel', hover: false
             }
         };
@@ -251,10 +266,17 @@ class FrogBasketballGame {
         // 从本地存储加载外观设置
         this.loadAppearanceFromStorage();
 
-        // 计算菜单按钮位置
+        // 计算主菜单按钮位置 - 居中
         this.menuButtons.normal.x = this.width / 2 - this.menuButtons.normal.width / 2;
         this.menuButtons.hardcore.x = this.width / 2 - this.menuButtons.hardcore.width / 2;
-        this.menuButtons.customize.x = this.width / 2 - this.menuButtons.customize.width / 2;
+        
+        // 计算辅助按钮位置 - 响应式定位
+        const margin = 30;
+        this.secondaryButtons.customize.x = margin; // 左下角，保持边距
+        this.secondaryButtons.customize.y = this.height - this.secondaryButtons.customize.height - margin;
+        
+        this.secondaryButtons.themeToggle.x = this.width - this.secondaryButtons.themeToggle.width - margin; // 右下角，保持边距
+        this.secondaryButtons.themeToggle.y = this.height - this.secondaryButtons.themeToggle.height - margin;
         
         // 计算暂停菜单按钮位置
         this.pauseMenuButtons.restart.x = this.width / 2 - this.pauseMenuButtons.restart.width / 2;
@@ -264,8 +286,64 @@ class FrogBasketballGame {
         this.gameLoop();
     }
     
+    calculateResponsiveSpacing() {
+        // 基于屏幕尺寸计算响应式间距
+        const baseWidth = 800;  // 基准宽度
+        const baseHeight = 600; // 基准高度
+        
+        const widthRatio = this.width / baseWidth;
+        const heightRatio = this.height / baseHeight;
+        const avgRatio = (widthRatio + heightRatio) / 2;
+        
+        return {
+            // 基础间距
+            xs: Math.max(4, Math.round(8 * avgRatio)),    // 4-12px
+            sm: Math.max(8, Math.round(16 * avgRatio)),   // 8-24px  
+            md: Math.max(16, Math.round(24 * avgRatio)),  // 16-36px
+            lg: Math.max(24, Math.round(32 * avgRatio)),  // 24-48px
+            xl: Math.max(32, Math.round(48 * avgRatio)),  // 32-72px
+            
+            // 面板相关间距
+            panel: {
+                margin: Math.max(20, Math.round(this.width * 0.02)),     // 动态边距
+                gap: this.width >= 1400 ? Math.min(80, (this.width - 600) / 8) : 
+                     this.width >= 1200 ? 60 : 40,                       // 面板间距
+                padding: Math.max(15, Math.round(20 * avgRatio)),        // 内边距
+                titleOffset: Math.max(25, Math.round(35 * avgRatio)),    // 标题偏移
+                elementSpacing: Math.max(40, Math.round(50 * avgRatio))  // 元素间距
+            },
+            
+            // 按钮相关间距
+            button: {
+                margin: Math.max(15, Math.round(20 * avgRatio)),         // 按钮外边距
+                padding: Math.max(8, Math.round(12 * avgRatio)),         // 按钮内边距
+                gap: Math.max(15, Math.round(20 * avgRatio)),            // 按钮间距
+                groupSpacing: Math.max(90, Math.round(120 * avgRatio))   // 按钮组间距
+            },
+            
+            // 文本相关间距
+            text: {
+                lineHeight: Math.max(20, Math.round(25 * avgRatio)),     // 行高
+                sectionSpacing: Math.max(45, Math.round(60 * avgRatio)), // 段落间距
+                labelOffset: Math.max(25, Math.round(30 * avgRatio))     // 标签偏移
+            }
+        };
+    }
+    
     setTheme(theme) {
         this.theme = theme;
+        
+        // Update button text if secondary buttons exist
+        if (this.secondaryButtons && this.secondaryButtons.themeToggle) {
+            this.secondaryButtons.themeToggle.text = this.theme === 'day' ? 'Day' : 'Night';
+        }
+        
+        // Update HTML theme class
+        if (this.theme === 'day') {
+            document.body.classList.add('day-theme');
+        } else {
+            document.body.classList.remove('day-theme');
+        }
     }
     
     initDefenders() {
@@ -534,9 +612,16 @@ class FrogBasketballGame {
             const y = e.clientY - rect.top;
             
             if (this.gameState === 'menu') {
-                // Check hover state for menu buttons
+                // Check hover state for main menu buttons
                 Object.keys(this.menuButtons).forEach(key => {
                     const btn = this.menuButtons[key];
+                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
+                               y >= btn.y && y <= btn.y + btn.height;
+                });
+                
+                // Check hover state for secondary buttons
+                Object.keys(this.secondaryButtons).forEach(key => {
+                    const btn = this.secondaryButtons[key];
                     btn.hover = x >= btn.x && x <= btn.x + btn.width &&
                                y >= btn.y && y <= btn.y + btn.height;
                 });
@@ -566,12 +651,21 @@ class FrogBasketballGame {
             const y = e.clientY - rect.top;
             
             if (this.gameState === 'menu') {
-                // Check menu button clicks
+                // Check main menu button clicks
                 Object.keys(this.menuButtons).forEach(key => {
                     const btn = this.menuButtons[key];
                     if (x >= btn.x && x <= btn.x + btn.width &&
                         y >= btn.y && y <= btn.y + btn.height) {
                         this.onMenuButtonClick(key);
+                    }
+                });
+                
+                // Check secondary button clicks
+                Object.keys(this.secondaryButtons).forEach(key => {
+                    const btn = this.secondaryButtons[key];
+                    if (x >= btn.x && x <= btn.x + btn.width &&
+                        y >= btn.y && y <= btn.y + btn.height) {
+                        this.onSecondaryButtonClick(key);
                     }
                 });
             } else if (this.gameState === 'paused') {
@@ -605,14 +699,28 @@ class FrogBasketballGame {
     }
     
     onMenuButtonClick(buttonKey) {
-        if (buttonKey === 'customize') {
-            this.gameState = 'customization';
-            this.initCustomization();
-        } else {
+        // Handle main menu buttons (Normal, Hardcore)
             this.difficulty = buttonKey;
             this.startFadeTransition(() => {
                 this.startGame();
             });
+    }
+    
+    onSecondaryButtonClick(buttonKey) {
+        if (buttonKey === 'customize') {
+            this.gameState = 'customization';
+            this.initCustomization();
+        } else if (buttonKey === 'themeToggle') {
+            // Toggle theme
+            this.theme = this.theme === 'day' ? 'night' : 'day';
+            this.secondaryButtons.themeToggle.text = this.theme === 'day' ? 'Day' : 'Night';
+            
+            // Update HTML theme class
+            if (this.theme === 'day') {
+                document.body.classList.add('day-theme');
+            } else {
+                document.body.classList.remove('day-theme');
+            }
         }
     }
     
@@ -1197,7 +1305,11 @@ class FrogBasketballGame {
     }
 
     drawPlayerWithAppearance(x, y, appearance) {
-        const bodyY = y + 12;
+        this.drawPlayerWithAppearanceScaled(x, y, appearance, 1.0);
+    }
+
+    drawPlayerWithAppearanceScaled(x, y, appearance, scale) {
+        const bodyY = y + 12 * scale;
 
         // 获取当前外观配置
         const headConfig = this.appearancePresets.heads[appearance.headIndex];
@@ -1205,80 +1317,84 @@ class FrogBasketballGame {
         const numberConfig = this.appearancePresets.numbers[appearance.numberIndex];
 
         // 绘制身体（带渐变色和圆角）
-        const gradient = this.ctx.createLinearGradient(x, bodyY, x, bodyY + 35);
+        const gradient = this.ctx.createLinearGradient(x, bodyY, x, bodyY + 35 * scale);
         gradient.addColorStop(0, jerseyConfig.color1);
         gradient.addColorStop(1, jerseyConfig.color2);
         this.ctx.fillStyle = gradient;
-        this.roundRect(x + 5, bodyY, 30, 35, 8);
+        this.roundRect(x + 5 * scale, bodyY, 30 * scale, 35 * scale, 8 * scale);
 
         // 绘制球衣号码
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 16px Arial';
+        this.ctx.font = `bold ${16 * scale}px Arial`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(numberConfig, x + 20, y + 35);
+        this.ctx.fillText(numberConfig, x + 20 * scale, y + 35 * scale);
 
         // 绘制头部
         this.ctx.fillStyle = headConfig.skinColor;
         this.ctx.beginPath();
-        this.ctx.arc(x + 20, y + 8, 12, 0, Math.PI * 2);
+        this.ctx.arc(x + 20 * scale, y + 8 * scale, 12 * scale, 0, Math.PI * 2);
         this.ctx.fill();
 
         // 绘制头发（不同发型）
         this.ctx.fillStyle = headConfig.hairColor;
-        this.drawHairStyle(x + 20, y + 5, headConfig.hairStyle);
+        this.drawHairStyleScaled(x + 20 * scale, y + 5 * scale, headConfig.hairStyle, scale);
 
         // 运球动画 (0.7倍速)
-        const ballOffset = Math.sin(this.animationFrame * (Math.PI / (30 / this.player.animSpeed)) * 0.7) * 10;
-        const ballX = x + 40;
-        const ballY = y + 35 + ballOffset;
+        const ballOffset = Math.sin(this.animationFrame * (Math.PI / (30 / this.player.animSpeed)) * 0.7) * 10 * scale;
+        const ballX = x + 40 * scale;
+        const ballY = y + 35 * scale + ballOffset;
 
         // 篮球
         this.ctx.fillStyle = '#FF8C00';
         this.ctx.beginPath();
-        this.ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
+        this.ctx.arc(ballX, ballY, 8 * scale, 0, Math.PI * 2);
         this.ctx.fill();
 
         // 篮球纹理
         this.ctx.strokeStyle = '#000000';
-        this.ctx.lineWidth = 1;
+        this.ctx.lineWidth = 1 * scale;
         this.ctx.beginPath();
-        this.ctx.arc(ballX, ballY, 8, 0, Math.PI * 2);
+        this.ctx.arc(ballX, ballY, 8 * scale, 0, Math.PI * 2);
         this.ctx.stroke();
     }
 
     drawHairStyle(x, y, style) {
+        this.drawHairStyleScaled(x, y, style, 1.0);
+    }
+
+    drawHairStyleScaled(x, y, style, scale) {
         this.ctx.beginPath();
         switch (style) {
             case 'classic':
-                this.ctx.arc(x, y, 10, Math.PI * 1.1, Math.PI * 1.9);
+                this.ctx.arc(x, y, 10 * scale, Math.PI * 1.1, Math.PI * 1.9);
                 break;
             case 'spiky':
                 // 画几个尖状的头发
-                this.ctx.moveTo(x - 8, y);
-                this.ctx.lineTo(x - 10, y - 5);
-                this.ctx.lineTo(x - 6, y - 3);
-                this.ctx.lineTo(x - 4, y - 8);
-                this.ctx.lineTo(x - 2, y - 2);
-                this.ctx.lineTo(x, y - 6);
-                this.ctx.lineTo(x + 2, y - 2);
-                this.ctx.lineTo(x + 4, y - 8);
-                this.ctx.lineTo(x + 6, y - 3);
-                this.ctx.lineTo(x + 8, y - 5);
-                this.ctx.lineTo(x + 10, y);
+                this.ctx.moveTo(x - 8 * scale, y);
+                this.ctx.lineTo(x - 10 * scale, y - 5 * scale);
+                this.ctx.lineTo(x - 6 * scale, y - 3 * scale);
+                this.ctx.lineTo(x - 4 * scale, y - 8 * scale);
+                this.ctx.lineTo(x - 2 * scale, y - 2 * scale);
+                this.ctx.lineTo(x, y - 6 * scale);
+                this.ctx.lineTo(x + 2 * scale, y - 2 * scale);
+                this.ctx.lineTo(x + 4 * scale, y - 8 * scale);
+                this.ctx.lineTo(x + 6 * scale, y - 3 * scale);
+                this.ctx.lineTo(x + 8 * scale, y - 5 * scale);
+                this.ctx.lineTo(x + 10 * scale, y);
                 break;
             case 'curly':
                 // 画卷发
-                this.ctx.arc(x - 6, y - 2, 4, 0, Math.PI * 2);
-                this.ctx.arc(x + 6, y - 2, 4, 0, Math.PI * 2);
-                this.ctx.arc(x, y - 6, 4, 0, Math.PI * 2);
+                this.ctx.arc(x - 6 * scale, y - 2 * scale, 4 * scale, 0, Math.PI * 2);
+                this.ctx.arc(x + 6 * scale, y - 2 * scale, 4 * scale, 0, Math.PI * 2);
+                this.ctx.arc(x, y - 6 * scale, 4 * scale, 0, Math.PI * 2);
                 break;
             case 'long':
                 // 画长发
-                this.ctx.arc(x, y, 12, Math.PI * 1.1, Math.PI * 1.9);
-                this.ctx.moveTo(x - 10, y + 2);
-                this.ctx.lineTo(x - 8, y + 8);
-                this.ctx.moveTo(x + 10, y + 2);
-                this.ctx.lineTo(x + 8, y + 8);
+                this.ctx.arc(x, y, 12 * scale, Math.PI * 1.1, Math.PI * 1.9);
+                this.ctx.moveTo(x - 10 * scale, y + 2 * scale);
+                this.ctx.lineTo(x - 8 * scale, y + 8 * scale);
+                this.ctx.moveTo(x + 10 * scale, y + 2 * scale);
+                this.ctx.lineTo(x + 8 * scale, y + 8 * scale);
                 break;
         }
         this.ctx.closePath();
@@ -1527,6 +1643,9 @@ class FrogBasketballGame {
             Object.keys(this.menuButtons).forEach(key => {
                 this.menuButtons[key].hover = false;
             });
+        Object.keys(this.secondaryButtons).forEach(key => {
+            this.secondaryButtons[key].hover = false;
+        });
             Object.keys(this.pauseMenuButtons).forEach(key => {
                 this.pauseMenuButtons[key].hover = false;
             });
@@ -2100,7 +2219,7 @@ class FrogBasketballGame {
         this.ctx.lineTo(ballX + ballRadius, ballY);
         this.ctx.stroke();
         
-        // Draw menu buttons
+        // Draw main menu buttons
         Object.keys(this.menuButtons).forEach(key => {
             const btn = this.menuButtons[key];
             
@@ -2141,6 +2260,70 @@ class FrogBasketballGame {
             // Button text
             this.ctx.fillStyle = btn.hover ? '#000000' : '#FFFFFF';
             this.ctx.font = 'bold 24px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2);
+            
+            this.ctx.restore();
+        });
+        
+        // Draw secondary buttons (smaller style)
+        Object.keys(this.secondaryButtons).forEach(key => {
+            const btn = this.secondaryButtons[key];
+            
+            this.ctx.save();
+            
+            // Smaller shadow for secondary buttons
+            this.ctx.shadowColor = '#000000';
+            this.ctx.shadowBlur = 5;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 3;
+            
+            // Different styling for secondary buttons
+            if (key === 'themeToggle') {
+                // Theme toggle button styling
+                if (btn.hover) {
+                    const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                    btnGradient.addColorStop(0, '#FF6B6B');
+                    btnGradient.addColorStop(1, '#EE5A24');
+                    this.ctx.fillStyle = btnGradient;
+                } else {
+                    const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                    btnGradient.addColorStop(0, '#5F27CD');
+                    btnGradient.addColorStop(1, '#341F97');
+                    this.ctx.fillStyle = btnGradient;
+                }
+            } else {
+                // Customize button styling
+                if (btn.hover) {
+                    const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                    btnGradient.addColorStop(0, '#00D2D3');
+                    btnGradient.addColorStop(1, '#54A0FF');
+                    this.ctx.fillStyle = btnGradient;
+                } else {
+                    const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                    btnGradient.addColorStop(0, '#2C2C54');
+                    btnGradient.addColorStop(1, '#40407A');
+                    this.ctx.fillStyle = btnGradient;
+                }
+            }
+            
+            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
+            this.ctx.fill();
+            
+            // Reset shadow for border and text
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // Button border
+            this.ctx.strokeStyle = btn.hover ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
+            // Button text
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 16px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2);
@@ -2289,24 +2472,151 @@ class FrogBasketballGame {
     }
 
     drawCustomizationMenu() {
-        // 绘制背景
-        this.ctx.fillStyle = '#2C3E50';
+        // 绘制渐变背景
+        const bgGradient = this.ctx.createRadialGradient(
+            this.width/2, this.height/2, 0,
+            this.width/2, this.height/2, Math.max(this.width, this.height)
+        );
+        bgGradient.addColorStop(0, '#34495E');
+        bgGradient.addColorStop(0.6, '#2C3E50');
+        bgGradient.addColorStop(1, '#1B2631');
+        this.ctx.fillStyle = bgGradient;
         this.ctx.fillRect(0, 0, this.width, this.height);
 
-        // 绘制标题
-        this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 36px Arial';
+        // 绘制装饰性网格背景
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < this.width; i += 50) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(i, 0);
+            this.ctx.lineTo(i, this.height);
+            this.ctx.stroke();
+        }
+        for (let i = 0; i < this.height; i += 50) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, i);
+            this.ctx.lineTo(this.width, i);
+            this.ctx.stroke();
+        }
+
+        // 绘制主标题 - 居中对称
+        this.ctx.save();
+        this.ctx.shadowColor = '#000000';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowOffsetY = 3;
+        
+        const titleGradient = this.ctx.createLinearGradient(0, 50, 0, 90);
+        titleGradient.addColorStop(0, '#FFD700');
+        titleGradient.addColorStop(1, '#FFA500');
+        this.ctx.fillStyle = titleGradient;
+        this.ctx.font = 'bold 32px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Character Customization', this.width / 2, 80);
+        this.ctx.fillText('Character Customization', this.width / 2, 70);
+        
+        // 标题描边
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeText('Character Customization', this.width / 2, 70);
+        this.ctx.restore();
 
-        // 绘制类别按钮
-        this.drawCustomizationButtons();
+        // 绘制左右分栏布局
+        this.drawSymmetricalLayout();
+    }
 
-        // 绘制当前选择的信息
-        this.drawCurrentSelection();
+    drawSymmetricalLayout() {
+        const centerX = this.width / 2;
+        const panelWidth = 300; // 增加面板宽度以适应宽屏
+        
+        // 使用响应式间距系统
+        const panelGap = this.spacing.panel.gap;
+        const totalPanelWidth = panelWidth * 2 + panelGap;
+        
+        // 响应式计算面板位置，优化宽屏显示
+        const leftPanelX = centerX - totalPanelWidth / 2;
+        const rightPanelX = centerX + panelGap / 2;
+        
+        // 确保面板不会超出屏幕边界，使用响应式边距
+        const margin = this.spacing.panel.margin;
+        const safeLeftX = Math.max(margin, leftPanelX);
+        const safeRightX = Math.min(this.width - panelWidth - margin, rightPanelX);
+        
+        // 优化面板垂直位置，适应不同屏幕高度
+        const panelY = Math.max(80, (this.height - 450) / 2);
+        
+        // 左侧控制面板
+        this.drawControlPanel(safeLeftX, panelY);
+        
+        // 右侧预览面板  
+        this.drawPreviewPanel(safeRightX, panelY);
+        
+        // 底部操作按钮 - 居中对称
+        this.drawActionButtons();
+    }
 
-        // 绘制预览
-        this.drawCustomizationPreview();
+    drawControlPanel(x, y) {
+        // 绘制控制面板背景
+        this.ctx.save();
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowOffsetY = 10;
+        
+        const panelGradient = this.ctx.createLinearGradient(x, y, x, y + 400);
+        panelGradient.addColorStop(0, 'rgba(52, 73, 94, 0.9)');
+        panelGradient.addColorStop(1, 'rgba(44, 62, 80, 0.9)');
+        this.ctx.fillStyle = panelGradient;
+        this.roundRect(x, y, 300, 400, 15);
+        this.ctx.fill();
+        
+        // 面板边框
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // 面板标题 - 使用响应式间距
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Customize Options', x + 150, y + this.spacing.panel.titleOffset);
+
+        // 重新定位类别按钮到左侧面板 - 使用响应式间距
+        this.drawCategoryButtonsInPanel(x + this.spacing.panel.padding, y + this.spacing.text.sectionSpacing);
+        
+        // 当前选择信息 - 使用响应式间距避免重叠，向下移动
+        this.drawCurrentSelectionInPanel(x + 150, y + 220);
+        
+        // 导航按钮 - 使用响应式间距，相应向下移动
+        this.drawNavigationButtonsInPanel(x + 70, y + 310);
+    }
+
+    drawPreviewPanel(x, y) {
+        // 绘制预览面板背景
+        this.ctx.save();
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowOffsetY = 10;
+        
+        const panelGradient = this.ctx.createLinearGradient(x, y, x, y + 400);
+        panelGradient.addColorStop(0, 'rgba(41, 128, 185, 0.9)');
+        panelGradient.addColorStop(1, 'rgba(52, 152, 219, 0.9)');
+        this.ctx.fillStyle = panelGradient;
+        this.roundRect(x, y, 300, 400, 15);
+        this.ctx.fill();
+        
+        // 面板边框
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // 面板标题 - 使用响应式间距
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 20px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Character Preview', x + 150, y + this.spacing.panel.titleOffset);
+
+        // 预览角色 - 使用响应式间距
+        this.drawEnhancedPreview(x + 100, y + this.spacing.button.groupSpacing);
     }
 
     drawCustomizationButtons() {
@@ -2314,43 +2624,151 @@ class FrogBasketballGame {
         categories.forEach(category => {
             const btn = this.customizationButtons[category];
             
-            // 绘制按钮背景
-            this.ctx.fillStyle = btn.active ? '#3498DB' : (btn.hover ? '#95A5A6' : '#7F8C8D');
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            this.ctx.shadowBlur = 8;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 4;
+            
+            // 绘制按钮背景渐变
+            let gradient;
+            if (btn.active) {
+                gradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                gradient.addColorStop(0, '#4A90E2');
+                gradient.addColorStop(1, '#2E5CA5');
+            } else if (btn.hover) {
+                gradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                gradient.addColorStop(0, '#5DADE2');
+                gradient.addColorStop(1, '#3498DB');
+            } else {
+                gradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                gradient.addColorStop(0, '#95A5A6');
+                gradient.addColorStop(1, '#7F8C8D');
+            }
+            
+            this.ctx.fillStyle = gradient;
+            this.roundRect(btn.x, btn.y, btn.width, btn.height, 10);
+            
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制按钮边框
+            this.ctx.strokeStyle = btn.active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
             
             // 绘制按钮文字
             this.ctx.fillStyle = '#FFFFFF';
-            this.ctx.font = 'bold 18px Arial';
+            this.ctx.font = 'bold 16px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2 + 6);
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2);
+            
+            this.ctx.restore();
         });
 
         // 绘制前进后退按钮
         const navButtons = ['prev', 'next'];
         navButtons.forEach(nav => {
             const btn = this.customizationButtons[nav];
-            this.ctx.fillStyle = btn.hover ? '#E74C3C' : '#C0392B';
+            
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            this.ctx.shadowBlur = 6;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 3;
+            
+            // 绘制渐变背景
+            const gradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+            if (btn.hover) {
+                gradient.addColorStop(0, '#E74C3C');
+                gradient.addColorStop(1, '#C0392B');
+            } else {
+                gradient.addColorStop(0, '#C0392B');
+                gradient.addColorStop(1, '#A93226');
+            }
+            
+            this.ctx.fillStyle = gradient;
             this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
             
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制边框
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
             this.ctx.fillStyle = '#FFFFFF';
-            this.ctx.font = 'bold 16px Arial';
+            this.ctx.font = 'bold 14px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2 + 6);
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2);
+            
+            this.ctx.restore();
         });
 
         // 绘制应用/取消按钮
         const actionButtons = ['apply', 'cancel'];
         actionButtons.forEach(action => {
             const btn = this.customizationButtons[action];
-            this.ctx.fillStyle = action === 'apply' ? 
-                (btn.hover ? '#27AE60' : '#2ECC71') : 
-                (btn.hover ? '#E67E22' : '#F39C12');
-            this.roundRect(btn.x, btn.y, btn.width, btn.height, 8);
             
-            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 5;
+            
+            // 绘制渐变背景
+            const gradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+            if (action === 'apply') {
+                if (btn.hover) {
+                    gradient.addColorStop(0, '#27AE60');
+                    gradient.addColorStop(1, '#1E8449');
+                } else {
+                    gradient.addColorStop(0, '#2ECC71');
+                    gradient.addColorStop(1, '#27AE60');
+                }
+            } else {
+                if (btn.hover) {
+                    gradient.addColorStop(0, '#E67E22');
+                    gradient.addColorStop(1, '#D35400');
+                } else {
+                    gradient.addColorStop(0, '#F39C12');
+                    gradient.addColorStop(1, '#E67E22');
+                }
+            }
+            
+            this.ctx.fillStyle = gradient;
+            this.roundRect(btn.x, btn.y, btn.width, btn.height, 10);
+            
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制边框
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 3;
+            this.ctx.stroke();
+            
+            this.ctx.fillStyle = action === 'apply' ? '#FFFFFF' : '#000000';
             this.ctx.font = 'bold 18px Arial';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2 + 6);
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btn.x + btn.width / 2, btn.y + btn.height / 2);
+            
+            this.ctx.restore();
         });
     }
 
@@ -2374,39 +2792,49 @@ class FrogBasketballGame {
                 break;
         }
 
-        // 绘制当前选择信息
+        // 绘制当前选择信息 - 调整位置
         this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 24px Arial';
+        this.ctx.font = 'bold 22px Arial';
         this.ctx.textAlign = 'center';
         
         const categoryText = category.charAt(0).toUpperCase() + category.slice(1);
-        this.ctx.fillText(`${categoryText}:`, this.width / 2, 320);
+        this.ctx.fillText(`${categoryText}:`, this.width / 2, 250);
         
-        this.ctx.font = '20px Arial';
+        this.ctx.font = '18px Arial';
         const name = typeof currentData === 'string' ? currentData : currentData.name;
-        this.ctx.fillText(name, this.width / 2, 350);
+        this.ctx.fillText(name, this.width / 2, 280);
         
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText(`${currentIndex + 1} / ${totalCount}`, this.width / 2, 380);
+        this.ctx.font = '14px Arial';
+        this.ctx.fillStyle = '#CCCCCC';
+        this.ctx.fillText(`${currentIndex + 1} / ${totalCount}`, this.width / 2, 300);
     }
 
     drawCustomizationPreview() {
-        // 绘制预览框
-        const previewX = this.width / 2 - 50;
-        const previewY = 400;
+        // 绘制预览框 - 扩大到200x150
+        const previewX = this.width / 2 - 75; // 调整中心位置
+        const previewY = 380; // 稍微上移
         
         this.ctx.strokeStyle = '#FFFFFF';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(previewX - 20, previewY - 20, 140, 100);
+        this.ctx.lineWidth = 3;
+        this.ctx.shadowColor = '#FFFFFF';
+        this.ctx.shadowBlur = 10;
+        this.ctx.strokeRect(previewX - 25, previewY - 25, 200, 150);
+        this.ctx.shadowBlur = 0;
         
-        // 绘制预览角色
+        // 绘制预览框标题
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Preview', previewX + 75, previewY - 35);
+        
+        // 绘制预览角色 - 1.5倍大小
         const previewAppearance = {
             headIndex: this.customization.selectedIndices.head,
             jerseyIndex: this.customization.selectedIndices.jersey,
             numberIndex: this.customization.selectedIndices.number
         };
         
-        this.drawPlayerWithAppearance(previewX, previewY, previewAppearance);
+        this.drawPlayerWithAppearanceScaled(previewX + 30, previewY + 20, previewAppearance, 1.5);
     }
 
     onCustomizationButtonClick(buttonKey) {
@@ -2478,6 +2906,275 @@ class FrogBasketballGame {
         
         // 返回主菜单
         this.gameState = 'menu';
+    }
+
+    drawCategoryButtonsInPanel(x, y) {
+        const categories = ['head', 'jersey', 'number'];
+        categories.forEach((category, index) => {
+            const btn = this.customizationButtons[category];
+            
+            // 重新计算按钮位置到面板内 - 使用响应式间距
+            const btnX = x;
+            const btnY = y + index * this.spacing.panel.elementSpacing; // 使用响应式元素间距
+            
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            this.ctx.shadowBlur = 8;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 4;
+            
+            // 绘制按钮背景渐变
+            let gradient;
+            if (btn.active) {
+                gradient = this.ctx.createLinearGradient(btnX, btnY, btnX, btnY + 40);
+                gradient.addColorStop(0, '#4A90E2');
+                gradient.addColorStop(1, '#2E5CA5');
+            } else if (btn.hover) {
+                gradient = this.ctx.createLinearGradient(btnX, btnY, btnX, btnY + 40);
+                gradient.addColorStop(0, '#5DADE2');
+                gradient.addColorStop(1, '#3498DB');
+            } else {
+                gradient = this.ctx.createLinearGradient(btnX, btnY, btnX, btnY + 40);
+                gradient.addColorStop(0, '#95A5A6');
+                gradient.addColorStop(1, '#7F8C8D');
+            }
+            
+            this.ctx.fillStyle = gradient;
+            this.roundRect(btnX, btnY, 260, 40, 10);
+            
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制按钮边框
+            this.ctx.strokeStyle = btn.active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
+            // 绘制按钮文字
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 16px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btnX + 130, btnY + 20);
+            
+            this.ctx.restore();
+            
+            // 更新按钮的实际位置用于点击检测
+            btn.x = btnX;
+            btn.y = btnY;
+            btn.width = 260;
+            btn.height = 40;
+        });
+    }
+
+    drawCurrentSelectionInPanel(centerX, y) {
+        const category = this.customization.selectedCategory;
+        const currentIndex = this.customization.selectedIndices[category];
+        let currentData, totalCount;
+
+        switch (category) {
+            case 'head':
+                currentData = this.appearancePresets.heads[currentIndex];
+                totalCount = this.appearancePresets.heads.length;
+                break;
+            case 'jersey':
+                currentData = this.appearancePresets.jerseys[currentIndex];
+                totalCount = this.appearancePresets.jerseys.length;
+                break;
+            case 'number':
+                currentData = this.appearancePresets.numbers[currentIndex];
+                totalCount = this.appearancePresets.numbers.length;
+                break;
+        }
+
+        // 绘制当前选择信息 - 使用响应式间距
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 18px Arial';
+        this.ctx.textAlign = 'center';
+        
+        const categoryText = category.charAt(0).toUpperCase() + category.slice(1);
+        this.ctx.fillText(`Current ${categoryText}:`, centerX, y);
+        
+        this.ctx.font = '16px Arial';
+        const name = typeof currentData === 'string' ? currentData : currentData.name;
+        this.ctx.fillText(name, centerX, y + this.spacing.text.labelOffset);
+        
+        this.ctx.font = '14px Arial';
+        this.ctx.fillStyle = '#CCCCCC';
+        this.ctx.fillText(`${currentIndex + 1} / ${totalCount}`, centerX, y + this.spacing.text.labelOffset * 2);
+    }
+
+    drawNavigationButtonsInPanel(x, y) {
+        const navButtons = ['prev', 'next'];
+        
+        // 计算按钮居中位置
+        const panelWidth = 300; // 面板宽度
+        const buttonWidth = 100; // 每个按钮的宽度
+        const buttonGap = 20; // 按钮之间的间距
+        const totalButtonWidth = buttonWidth * 2 + buttonGap; // 两个按钮的总宽度
+        const startX = x + (panelWidth/2 - totalButtonWidth) / 2; // 居中的起始X位置
+        
+        navButtons.forEach((nav, index) => {
+            const btn = this.customizationButtons[nav];
+            const btnX = startX + index * (buttonWidth + buttonGap); // 居中计算按钮位置
+            const btnY = y;
+            
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            this.ctx.shadowBlur = 6;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 3;
+            
+            // 绘制渐变背景
+            const gradient = this.ctx.createLinearGradient(btnX, btnY, btnX, btnY + 40);
+            if (btn.hover) {
+                gradient.addColorStop(0, '#E74C3C');
+                gradient.addColorStop(1, '#C0392B');
+            } else {
+                gradient.addColorStop(0, '#C0392B');
+                gradient.addColorStop(1, '#A93226');
+            }
+            
+            this.ctx.fillStyle = gradient;
+            this.roundRect(btnX, btnY, 100, 40, 8);
+            
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制边框
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 14px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btnX + 50, btnY + 20);
+            
+            this.ctx.restore();
+            
+            // 更新按钮位置
+            btn.x = btnX;
+            btn.y = btnY;
+            btn.width = 100;
+            btn.height = 40;
+        });
+    }
+
+    drawEnhancedPreview(x, y) {
+        // 绘制增强的预览背景
+        this.ctx.save();
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+        this.ctx.shadowBlur = 15;
+        
+        const previewBg = this.ctx.createRadialGradient(x + 50, y + 75, 0, x + 50, y + 75, 80);
+        previewBg.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        previewBg.addColorStop(1, 'rgba(255, 255, 255, 0.7)');
+        this.ctx.fillStyle = previewBg;
+        this.ctx.beginPath();
+        this.ctx.arc(x + 50, y + 75, 80, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+        this.ctx.restore();
+        
+        // 绘制预览角色 - 2倍大小，向右下移动
+        const previewAppearance = {
+            headIndex: this.customization.selectedIndices.head,
+            jerseyIndex: this.customization.selectedIndices.jersey,
+            numberIndex: this.customization.selectedIndices.number
+        };
+        
+        this.drawPlayerWithAppearanceScaled(x + 5, y + 25, previewAppearance, 2.0);
+    }
+
+    drawActionButtons() {
+        const centerX = this.width / 2;
+        const buttonWidth = 120;
+        const buttonGap = this.spacing.button.gap; // 使用响应式按钮间距
+        const totalButtonWidth = buttonWidth * 2 + buttonGap;
+        
+        // 动态计算按钮Y位置，基于面板底部 - 使用响应式间距
+        const panelY = Math.max(80, (this.height - 450) / 2); // 与面板Y位置保持一致
+        const panelHeight = 400; // 面板高度
+        const buttonMarginFromPanel = this.spacing.button.margin; // 使用响应式按钮边距
+        const dynamicButtonY = panelY + panelHeight + buttonMarginFromPanel;
+        
+        // 确保按钮不会超出屏幕底部 - 使用响应式间距
+        const maxButtonY = this.height - this.spacing.xl; // 使用响应式底部边距
+        const btnY = Math.min(dynamicButtonY, maxButtonY);
+        
+        const actionButtons = ['apply', 'cancel'];
+        actionButtons.forEach((action, index) => {
+            const btn = this.customizationButtons[action];
+            const btnX = centerX - totalButtonWidth / 2 + index * (buttonWidth + buttonGap);
+            
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 5;
+            
+            // 绘制渐变背景
+            const gradient = this.ctx.createLinearGradient(btnX, btnY, btnX, btnY + 50);
+            if (action === 'apply') {
+                if (btn.hover) {
+                    gradient.addColorStop(0, '#27AE60');
+                    gradient.addColorStop(1, '#1E8449');
+                } else {
+                    gradient.addColorStop(0, '#2ECC71');
+                    gradient.addColorStop(1, '#27AE60');
+                }
+            } else {
+                if (btn.hover) {
+                    gradient.addColorStop(0, '#E67E22');
+                    gradient.addColorStop(1, '#D35400');
+                } else {
+                    gradient.addColorStop(0, '#F39C12');
+                    gradient.addColorStop(1, '#E67E22');
+                }
+            }
+            
+            this.ctx.fillStyle = gradient;
+            this.roundRect(btnX, btnY, 120, 50, 10);
+            
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制边框
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 3;
+            this.ctx.stroke();
+            
+            this.ctx.fillStyle = action === 'apply' ? '#FFFFFF' : '#000000';
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, btnX + 60, btnY + 25);
+            
+            this.ctx.restore();
+            
+            // 更新按钮位置
+            btn.x = btnX;
+            btn.y = btnY;
+            btn.width = 120;
+            btn.height = 50;
+        });
     }
 }
 

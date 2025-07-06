@@ -123,14 +123,7 @@
             background: var(--day-button-hover-bg);
         }
 
-        #themeSwitcher {
-            position: absolute;
-            bottom: 25px;
-            left: 25px;
-            z-index: 100;
-            font-size: 12px;
-            padding: 6px 12px;
-        }
+
     </style>
 </head>
 <body class="day-theme">
@@ -147,19 +140,12 @@
             <p id="finalScore">Final Score: 0</p>
             <button onclick="restartGame()">Restart Game</button>
         </div>
-        <button id="themeSwitcher">切换主题</button>
+
     </div>
     
     <script src="game.js"></script>
     <script>
-        const themeSwitcher = document.getElementById('themeSwitcher');
-        themeSwitcher.addEventListener('click', () => {
-            document.body.classList.toggle('day-theme');
-            const currentTheme = document.body.classList.contains('day-theme') ? 'day' : 'night';
-            if (window.game) {
-                window.game.setTheme(currentTheme);
-            }
-        });
+        // Theme switching is now handled by the game's internal Day/Night button
     </script>
 </body>
 </html>
