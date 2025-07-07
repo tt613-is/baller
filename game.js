@@ -111,6 +111,14 @@ class FrogBasketballGame {
                 text: 'Customize',
                 hover: false
             },
+            customize2: {
+                x: 30, // Left bottom corner, same x as customize
+                y: 0, // Will be calculated
+                width: 120,
+                height: 40,
+                text: 'Customize2',
+                hover: false
+            },
             themeToggle: {
                 x: 0, // Will be calculated - right bottom corner
                 y: 0, // Will be calculated
@@ -202,6 +210,59 @@ class FrogBasketballGame {
             numbers: ["1", "23", "88", "99", "7", "11", "33", "77"]
         };
 
+        // Avatar预设数据 - 3个固定角色设计
+        this.avatarPresets = {
+            male: {
+                id: "male",
+                name: "Male",
+                description: "Classic male character",
+                head: {
+                    skinColor: "#FFDBAC",
+                    hairColor: "#3A2A1A", 
+                    hairStyle: "classic"
+                },
+                jersey: {
+                    color1: "#00529B",  // Classic Blue 主色
+                    color2: "#FFD700",  // Classic Blue 副色
+                    style: "gradient"   // 正常渐变
+                },
+                number: "1"
+            },
+            female: {
+                id: "female", 
+                name: "Female",
+                description: "Female character with side low ponytail",
+                head: {
+                    skinColor: "#FFDBAC",  // 与Male相同的肤色
+                    hairColor: "#2C1810",  // 深棕色/黑色头发
+                    hairStyle: "ponytail"
+                },
+                jersey: {
+                    color1: "#FFD700",  // Classic Blue 倒渐变 - 副色变主色
+                    color2: "#00529B",  // Classic Blue 倒渐变 - 主色变副色
+                    style: "gradient_reverse"  // 倒渐变
+                },
+                number: "7"
+            },
+            robot: {
+                id: "robot",
+                name: "Robot", 
+                description: "Robotic character design",
+                head: {
+                    skinColor: "#F5F5F5",  // 原型机主色
+                    hairColor: null,       // 机器人无头发
+                    hairStyle: "robot"
+                },
+                jersey: {
+                    color1: "#F5F5F5",  // 主体颜色: 哑光白
+                    color2: "#E0E0E0",  // 细节颜色: 银灰
+                    color3: "#00FFFF",  // 能源颜色: 青色
+                    style: "proto_unit"     // 更新为原型机样式
+                },
+                number: "88"
+            }
+        };
+
         // 玩家设置
         this.player = {
             x: this.width / 2,
@@ -212,12 +273,15 @@ class FrogBasketballGame {
             animFrame: 0,
             animSpeed: 8,
             dribbling: true,
-            // 外观属性
+            // 外观属性 - 普通换装模式
             appearance: {
                 headIndex: 0,
                 jerseyIndex: 0,
                 numberIndex: 0
             },
+            // Avatar模式属性
+            avatarMode: false,  // 是否使用Avatar模式
+            selectedAvatar: null,  // 当前选择的Avatar (male/female/robot)
             // 保持向后兼容的旧属性
             jerseyNumber: '1',
             bodyColor1: '#00529B',
@@ -292,6 +356,12 @@ class FrogBasketballGame {
             previewPlayer: null
         };
 
+        // Avatar选择界面数据
+        this.avatarCustomization = {
+            selectedAvatar: 'male',  // 当前选择的Avatar: 'male', 'female', 'robot'
+            previewAvatar: null
+        };
+
         // 换装界面按钮 - 重新布局
         this.customizationButtons = {
             head: {
@@ -324,8 +394,35 @@ class FrogBasketballGame {
             }
         };
 
+        // Avatar选择界面按钮
+        this.avatarButtons = {
+            male: {
+                x: 50, y: 150, width: 200, height: 80,
+                text: 'Male', hover: false, active: true
+            },
+            female: {
+                x: 50, y: 250, width: 200, height: 80,
+                text: 'Female', hover: false, active: false
+            },
+            robot: {
+                x: 50, y: 350, width: 200, height: 80,
+                text: 'Robot', hover: false, active: false
+            },
+            apply: {
+                x: 250, y: 520, width: 120, height: 50,
+                text: 'Apply', hover: false
+            },
+            cancel: {
+                x: 400, y: 520, width: 120, height: 50,
+                text: 'Cancel', hover: false
+            }
+        };
+
         // 从本地存储加载外观设置
         this.loadAppearanceFromStorage();
+        
+        // 从本地存储加载Avatar设置
+        this.loadAvatarFromStorage();
 
         // 计算主菜单按钮位置 - 居中
         this.menuButtons.normal.x = this.width / 2 - this.menuButtons.normal.width / 2;
@@ -333,8 +430,15 @@ class FrogBasketballGame {
         
         // 计算辅助按钮位置 - 响应式定位
         const margin = 30;
-        this.secondaryButtons.customize.x = margin; // 左下角，保持边距
-        this.secondaryButtons.customize.y = this.height - this.secondaryButtons.customize.height - margin;
+        const buttonSpacing = 50; // 按钮之间的间距
+        
+        // Customize2按钮在原来Customize的位置（左下角）
+        this.secondaryButtons.customize2.x = margin;
+        this.secondaryButtons.customize2.y = this.height - this.secondaryButtons.customize2.height - margin;
+        
+        // Customize按钮移动到Customize2的上方
+        this.secondaryButtons.customize.x = margin;
+        this.secondaryButtons.customize.y = this.secondaryButtons.customize2.y - this.secondaryButtons.customize.height - 10;
         
         this.secondaryButtons.themeToggle.x = this.width - this.secondaryButtons.themeToggle.width - margin; // 右下角，保持边距
         this.secondaryButtons.themeToggle.y = this.height - this.secondaryButtons.themeToggle.height - margin;
@@ -706,6 +810,13 @@ class FrogBasketballGame {
                     btn.hover = x >= btn.x && x <= btn.x + btn.width &&
                                y >= btn.y && y <= btn.y + btn.height;
                 });
+            } else if (this.gameState === 'avatarSelection') {
+                // Check hover state for avatar selection buttons
+                Object.keys(this.avatarButtons).forEach(key => {
+                    const btn = this.avatarButtons[key];
+                    btn.hover = x >= btn.x && x <= btn.x + btn.width &&
+                               y >= btn.y && y <= btn.y + btn.height;
+                });
             }
         };
         
@@ -753,6 +864,15 @@ class FrogBasketballGame {
                     if (x >= btn.x && x <= btn.x + btn.width &&
                         y >= btn.y && y <= btn.y + btn.height) {
                         this.onCustomizationButtonClick(key);
+                    }
+                });
+            } else if (this.gameState === 'avatarSelection') {
+                // Check avatar selection button clicks
+                Object.keys(this.avatarButtons).forEach(key => {
+                    const btn = this.avatarButtons[key];
+                    if (x >= btn.x && x <= btn.x + btn.width &&
+                        y >= btn.y && y <= btn.y + btn.height) {
+                        this.onAvatarButtonClick(key);
                     }
                 });
             }
@@ -851,6 +971,10 @@ class FrogBasketballGame {
         if (buttonKey === 'customize') {
             this.gameState = 'customization';
             this.initCustomization();
+        } else if (buttonKey === 'customize2') {
+            // Customize2按钮功能 - 进入Avatar选择模式
+            this.gameState = 'avatarSelection';
+            this.initAvatarSelection();
         } else if (buttonKey === 'themeToggle') {
             // Toggle theme
             this.theme = this.theme === 'day' ? 'night' : 'day';
@@ -1248,6 +1372,8 @@ class FrogBasketballGame {
             this.drawPauseMenu();
         } else if (this.gameState === 'customization') {
             this.drawCustomizationMenu();
+        } else if (this.gameState === 'avatarSelection') {
+            this.drawAvatarSelectionMenu();
         } else {
             this.drawGameScene();
         }
@@ -1472,7 +1598,15 @@ class FrogBasketballGame {
     drawPlayerWithAppearanceScaled(x, y, appearance, scale) {
         const bodyY = y + 12 * scale;
 
-        // 获取当前外观配置
+        // 检查是否是Avatar模式
+        if (this.player.avatarMode && this.player.selectedAvatar) {
+            // Avatar模式 - 使用预设的Avatar配置
+            const avatarConfig = this.avatarPresets[this.player.selectedAvatar];
+            this.drawAvatarScaled(x, y, avatarConfig, scale);
+            return;
+        }
+
+        // 普通换装模式 - 使用现有逻辑
         const headConfig = this.appearancePresets.heads[appearance.headIndex];
         const jerseyConfig = this.appearancePresets.jerseys[appearance.jerseyIndex];
         const numberConfig = this.appearancePresets.numbers[appearance.numberIndex];
@@ -1557,6 +1691,173 @@ class FrogBasketballGame {
                 this.ctx.moveTo(x + 10 * scale, y + 2 * scale);
                 this.ctx.lineTo(x + 8 * scale, y + 8 * scale);
                 break;
+            case 'ponytail1':
+                // 方案1: 可爱双马尾 - 参考图片风格，高位双马尾
+                // 1. 绘制基础头发覆盖 - 更完整的覆盖
+                this.ctx.arc(x, y, 11 * scale, Math.PI * 1.05, Math.PI * 1.95);
+                
+                // 2. 前刘海 - 可爱风格
+                this.ctx.moveTo(x - 8 * scale, y - 6 * scale);
+                this.ctx.quadraticCurveTo(x - 4 * scale, y - 8 * scale, x, y - 7 * scale);
+                this.ctx.quadraticCurveTo(x + 4 * scale, y - 8 * scale, x + 8 * scale, y - 6 * scale);
+                
+                // 3. 左侧高位马尾 - 更高更可爱
+                this.ctx.moveTo(x - 9 * scale, y - 2 * scale);
+                this.ctx.bezierCurveTo(
+                    x - 15 * scale, y + 2 * scale,   // 向外弯曲
+                    x - 18 * scale, y + 8 * scale,   // 下垂
+                    x - 12 * scale, y + 16 * scale   // 马尾末端
+                );
+                this.ctx.lineTo(x - 8 * scale, y + 14 * scale);
+                this.ctx.lineTo(x - 8 * scale, y + 1 * scale);
+                
+                // 4. 右侧高位马尾 - 对称设计
+                this.ctx.moveTo(x + 9 * scale, y - 2 * scale);
+                this.ctx.bezierCurveTo(
+                    x + 15 * scale, y + 2 * scale,   // 向外弯曲
+                    x + 18 * scale, y + 8 * scale,   // 下垂
+                    x + 12 * scale, y + 16 * scale   // 马尾末端
+                );
+                this.ctx.lineTo(x + 8 * scale, y + 14 * scale);
+                this.ctx.lineTo(x + 8 * scale, y + 1 * scale);
+                break;
+                
+            case 'ponytail2':
+                // 方案2: 不对称短发 - 现代感设计
+                // 1. 基础短发轮廓
+                this.ctx.arc(x, y, 10 * scale, Math.PI * 1.1, Math.PI * 1.9);
+                
+                // 2. 左侧较短的头发
+                this.ctx.moveTo(x - 10 * scale, y - 1 * scale);
+                this.ctx.quadraticCurveTo(x - 12 * scale, y + 3 * scale, x - 8 * scale, y + 8 * scale);
+                this.ctx.lineTo(x - 6 * scale, y + 6 * scale);
+                
+                // 3. 右侧较长的头发 - 不对称设计
+                this.ctx.moveTo(x + 10 * scale, y - 1 * scale);
+                this.ctx.bezierCurveTo(
+                    x + 14 * scale, y + 2 * scale,
+                    x + 16 * scale, y + 8 * scale,
+                    x + 12 * scale, y + 14 * scale
+                );
+                this.ctx.lineTo(x + 8 * scale, y + 12 * scale);
+                this.ctx.lineTo(x + 9 * scale, y + 4 * scale);
+                
+                // 4. 前刘海 - 斜刘海
+                this.ctx.moveTo(x - 6 * scale, y - 6 * scale);
+                this.ctx.quadraticCurveTo(x + 2 * scale, y - 7 * scale, x + 8 * scale, y - 4 * scale);
+                break;
+                
+            case 'ponytail3':
+                // 方案3: 蓬松卷发 - 自然卷曲质感
+                // 1. 蓬松的基础形状
+                this.ctx.arc(x, y, 12 * scale, Math.PI * 1.0, Math.PI * 2.0);
+                
+                // 2. 左侧卷发 - 多个小卷
+                this.ctx.moveTo(x - 12 * scale, y - 2 * scale);
+                this.ctx.bezierCurveTo(
+                    x - 16 * scale, y + 1 * scale,
+                    x - 14 * scale, y + 5 * scale,
+                    x - 10 * scale, y + 8 * scale
+                );
+                this.ctx.bezierCurveTo(
+                    x - 14 * scale, y + 10 * scale,
+                    x - 16 * scale, y + 14 * scale,
+                    x - 8 * scale, y + 16 * scale
+                );
+                
+                // 3. 右侧卷发 - 对称但稍有变化
+                this.ctx.moveTo(x + 12 * scale, y - 2 * scale);
+                this.ctx.bezierCurveTo(
+                    x + 16 * scale, y + 1 * scale,
+                    x + 14 * scale, y + 5 * scale,
+                    x + 10 * scale, y + 8 * scale
+                );
+                this.ctx.bezierCurveTo(
+                    x + 14 * scale, y + 10 * scale,
+                    x + 15 * scale, y + 14 * scale,
+                    x + 9 * scale, y + 15 * scale
+                );
+                
+                // 4. 顶部蓬松效果
+                this.ctx.moveTo(x - 8 * scale, y - 8 * scale);
+                this.ctx.quadraticCurveTo(x - 4 * scale, y - 10 * scale, x, y - 8 * scale);
+                this.ctx.quadraticCurveTo(x + 4 * scale, y - 10 * scale, x + 8 * scale, y - 8 * scale);
+                break;
+                
+            case 'ponytail4':
+                // 方案4: 层次刘海 - 日系可爱风格
+                // 1. 基础中长发
+                this.ctx.arc(x, y, 10 * scale, Math.PI * 1.1, Math.PI * 1.9);
+                
+                // 2. 厚重刘海 - 日系特色
+                this.ctx.moveTo(x - 10 * scale, y - 4 * scale);
+                this.ctx.lineTo(x - 8 * scale, y - 8 * scale);
+                this.ctx.lineTo(x - 4 * scale, y - 9 * scale);
+                this.ctx.lineTo(x, y - 8 * scale);
+                this.ctx.lineTo(x + 4 * scale, y - 9 * scale);
+                this.ctx.lineTo(x + 8 * scale, y - 8 * scale);
+                this.ctx.lineTo(x + 10 * scale, y - 4 * scale);
+                this.ctx.lineTo(x + 8 * scale, y - 2 * scale);
+                this.ctx.lineTo(x - 8 * scale, y - 2 * scale);
+                
+                // 3. 左侧中长发 - 层次感
+                this.ctx.moveTo(x - 10 * scale, y + 2 * scale);
+                this.ctx.bezierCurveTo(
+                    x - 12 * scale, y + 6 * scale,
+                    x - 10 * scale, y + 12 * scale,
+                    x - 6 * scale, y + 16 * scale
+                );
+                this.ctx.lineTo(x - 4 * scale, y + 14 * scale);
+                this.ctx.lineTo(x - 8 * scale, y + 4 * scale);
+                
+                // 4. 右侧中长发 - 对称层次
+                this.ctx.moveTo(x + 10 * scale, y + 2 * scale);
+                this.ctx.bezierCurveTo(
+                    x + 12 * scale, y + 6 * scale,
+                    x + 10 * scale, y + 12 * scale,
+                    x + 6 * scale, y + 16 * scale
+                );
+                this.ctx.lineTo(x + 4 * scale, y + 14 * scale);
+                this.ctx.lineTo(x + 8 * scale, y + 4 * scale);
+                break;
+            case 'ponytail':
+                // 方案5: 侧边低马尾 (Side Low Ponytail) - 现代不对称美学
+                // 1. 绘制基础头发覆盖，稍微偏向左侧
+                this.ctx.arc(x, y, 10 * scale, Math.PI * 1.1, Math.PI * 1.9);
+                
+                // 2. 左侧头发自然垂落
+                this.ctx.moveTo(x - 10 * scale, y);
+                this.ctx.lineTo(x - 8 * scale, y + 6 * scale);
+                this.ctx.lineTo(x - 6 * scale, y + 4 * scale);
+                
+                // 3. 右侧头发向后聚拢到侧边
+                this.ctx.moveTo(x + 10 * scale, y - 2 * scale);
+                this.ctx.quadraticCurveTo(x + 14 * scale, y + 2 * scale, x + 12 * scale, y + 8 * scale);
+                
+                // 4. 侧边低位马尾 - 在右侧较低的位置
+                this.ctx.moveTo(x + 12 * scale, y + 8 * scale); // 马尾起始点
+                this.ctx.bezierCurveTo(
+                    x + 16 * scale, y + 10 * scale, // 控制点1 (向外)
+                    x + 18 * scale, y + 16 * scale, // 控制点2 (向下)
+                    x + 14 * scale, y + 20 * scale  // 马尾末端
+                );
+                this.ctx.lineTo(x + 10 * scale, y + 18 * scale); // 马尾内侧
+                this.ctx.lineTo(x + 11 * scale, y + 10 * scale); // 连回马尾根部
+                
+                // 5. 添加一些细节发丝增加自然感
+                this.ctx.moveTo(x + 13 * scale, y + 12 * scale);
+                this.ctx.lineTo(x + 15 * scale, y + 17 * scale);
+                break;
+            case 'robot':
+                // 机器人头部 - 方形设计
+                // 不绘制头发，而是绘制机器人的头部装饰
+                this.ctx.fillRect(x - 8 * scale, y - 8 * scale, 16 * scale, 6 * scale);
+                // 天线
+                this.ctx.fillRect(x - 2 * scale, y - 12 * scale, 4 * scale, 4 * scale);
+                // 侧面装饰
+                this.ctx.fillRect(x - 12 * scale, y - 2 * scale, 4 * scale, 4 * scale);
+                this.ctx.fillRect(x + 8 * scale, y - 2 * scale, 4 * scale, 4 * scale);
+                return; // 机器人不需要closePath和fill，因为已经用fillRect绘制了
         }
         this.ctx.closePath();
         this.ctx.fill();
@@ -2458,6 +2759,19 @@ class FrogBasketballGame {
                     btnGradient.addColorStop(1, '#341F97');
                     this.ctx.fillStyle = btnGradient;
                 }
+            } else if (key === 'customize2') {
+                // Customize2 button styling - 不同的颜色
+                if (btn.hover) {
+                    const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                    btnGradient.addColorStop(0, '#FF9500');
+                    btnGradient.addColorStop(1, '#FF6B35');
+                    this.ctx.fillStyle = btnGradient;
+                } else {
+                    const btnGradient = this.ctx.createLinearGradient(btn.x, btn.y, btn.x, btn.y + btn.height);
+                    btnGradient.addColorStop(0, '#E67E22');
+                    btnGradient.addColorStop(1, '#D35400');
+                    this.ctx.fillStyle = btnGradient;
+                }
             } else {
                 // Customize button styling
                 if (btn.hover) {
@@ -2636,6 +2950,39 @@ class FrogBasketballGame {
         }
     }
 
+    // 保存Avatar选择到本地存储
+    saveAvatarToStorage() {
+        try {
+            const avatarData = {
+                avatarMode: this.player.avatarMode,
+                selectedAvatar: this.player.selectedAvatar
+            };
+            localStorage.setItem('basketballGameAvatar', JSON.stringify(avatarData));
+        } catch (e) {
+            // 在开发模式下可以使用: if (DEBUG) console.warn('Failed to save avatar:', e);
+        }
+    }
+
+    // 从本地存储加载Avatar设置
+    loadAvatarFromStorage() {
+        try {
+            const savedData = localStorage.getItem('basketballGameAvatar');
+            if (savedData) {
+                const avatarData = JSON.parse(savedData);
+                this.player.avatarMode = avatarData.avatarMode || false;
+                this.player.selectedAvatar = avatarData.selectedAvatar || 'male';
+                
+                // 更新Avatar选择界面状态
+                this.avatarCustomization.selectedAvatar = this.player.selectedAvatar;
+            }
+        } catch (e) {
+            // 如果加载失败，使用默认值
+            this.player.avatarMode = false;
+            this.player.selectedAvatar = 'male';
+            this.avatarCustomization.selectedAvatar = 'male';
+        }
+    }
+
     initCustomization() {
         // 重置换装界面状态
         this.customization.selectedCategory = 'head';
@@ -2649,6 +2996,20 @@ class FrogBasketballGame {
         Object.keys(this.customizationButtons).forEach(key => {
             if (['head', 'jersey', 'number'].includes(key)) {
                 this.customizationButtons[key].active = (key === 'head');
+            }
+        });
+    }
+
+    // Avatar选择界面初始化函数
+    initAvatarSelection() {
+        // 重置Avatar选择状态
+        this.avatarCustomization.selectedAvatar = this.player.selectedAvatar || 'male';
+        this.avatarCustomization.previewAvatar = null;
+        
+        // 设置Avatar按钮状态
+        Object.keys(this.avatarButtons).forEach(key => {
+            if (['male', 'female', 'robot'].includes(key)) {
+                this.avatarButtons[key].active = (key === this.avatarCustomization.selectedAvatar);
             }
         });
     }
@@ -2733,6 +3094,279 @@ class FrogBasketballGame {
         
         // 底部操作按钮 - 居中对称
         this.drawActionButtons();
+    }
+
+    // Avatar选择界面绘制函数
+    drawAvatarSelectionMenu() {
+        // 绘制装饰性背景
+        this.ctx.save();
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.restore();
+
+        // 绘制主标题
+        this.ctx.save();
+        this.ctx.shadowColor = '#000000';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowOffsetY = 3;
+        
+        const titleGradient = this.ctx.createLinearGradient(0, 50, 0, 90);
+        titleGradient.addColorStop(0, '#FF6B35');
+        titleGradient.addColorStop(1, '#FF9500');
+        this.ctx.fillStyle = titleGradient;
+        this.ctx.font = 'bold 32px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Choose Your Avatar', this.width / 2, 70);
+        
+        // 标题描边
+        this.ctx.strokeStyle = '#FFFFFF';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeText('Choose Your Avatar', this.width / 2, 70);
+        this.ctx.restore();
+
+        // 绘制左侧Avatar选择按钮
+        this.drawAvatarSelectionButtons();
+        
+        // 绘制右侧预览面板
+        this.drawAvatarPreviewPanel();
+        
+        // 绘制底部操作按钮
+        this.drawAvatarActionButtons();
+    }
+
+    // 绘制Avatar选择按钮
+    drawAvatarSelectionButtons() {
+        const avatarTypes = ['male', 'female', 'robot'];
+        const buttonWidth = 200;
+        const buttonHeight = 80;
+        const startX = 50;
+        const startY = 150;
+        const spacing = 20;
+
+        avatarTypes.forEach((type, index) => {
+            const btn = this.avatarButtons[type];
+            const y = startY + index * (buttonHeight + spacing);
+            
+            // 更新按钮位置
+            btn.x = startX;
+            btn.y = y;
+            btn.width = buttonWidth;
+            btn.height = buttonHeight;
+
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 5;
+            
+            // 绘制按钮背景渐变
+            let gradient;
+            if (btn.active) {
+                gradient = this.ctx.createLinearGradient(startX, y, startX, y + buttonHeight);
+                gradient.addColorStop(0, '#FF6B35');
+                gradient.addColorStop(1, '#FF9500');
+            } else if (btn.hover) {
+                gradient = this.ctx.createLinearGradient(startX, y, startX, y + buttonHeight);
+                gradient.addColorStop(0, '#FF9500');
+                gradient.addColorStop(1, '#FF6B35');
+            } else {
+                gradient = this.ctx.createLinearGradient(startX, y, startX, y + buttonHeight);
+                gradient.addColorStop(0, '#95A5A6');
+                gradient.addColorStop(1, '#7F8C8D');
+            }
+            
+            this.ctx.fillStyle = gradient;
+            this.roundRect(startX, y, buttonWidth, buttonHeight, 12);
+            
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制按钮边框
+            this.ctx.strokeStyle = btn.active ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)';
+            this.ctx.lineWidth = 3;
+            this.ctx.stroke();
+            
+            // 绘制Avatar小图标
+            const iconX = startX + 20;
+            const iconY = y + 20;
+            this.drawAvatarIcon(iconX, iconY, type, 0.8);
+            
+            // 绘制按钮文字
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 20px Arial';
+            this.ctx.textAlign = 'left';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(type.charAt(0).toUpperCase() + type.slice(1), startX + 80, y + buttonHeight / 2);
+            
+            this.ctx.restore();
+        });
+    }
+
+    // 绘制Avatar预览面板
+    drawAvatarPreviewPanel() {
+        const panelX = 350;
+        const panelY = 120;
+        const panelWidth = 350;
+        const panelHeight = 350;
+
+        // 绘制预览面板背景
+        this.ctx.save();
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowOffsetY = 10;
+        
+        const panelGradient = this.ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelHeight);
+        panelGradient.addColorStop(0, 'rgba(52, 152, 219, 0.9)');
+        panelGradient.addColorStop(1, 'rgba(41, 128, 185, 0.9)');
+        this.ctx.fillStyle = panelGradient;
+        this.roundRect(panelX, panelY, panelWidth, panelHeight, 15);
+        this.ctx.fill();
+        
+        // 面板边框
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        this.ctx.restore();
+
+        // 面板标题
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = 'bold 24px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Preview', panelX + panelWidth / 2, panelY + 40);
+
+        // 绘制预览Avatar
+        const selectedAvatar = this.avatarCustomization.selectedAvatar;
+        if (selectedAvatar && this.avatarPresets[selectedAvatar]) {
+            const avatarConfig = this.avatarPresets[selectedAvatar];
+            const avatarX = panelX + panelWidth / 2 - 40;
+            const avatarY = panelY + 80;
+            
+            // 绘制预览背景圆圈
+            this.ctx.save();
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+            this.ctx.shadowBlur = 15;
+            
+            const previewBg = this.ctx.createRadialGradient(avatarX + 40, avatarY + 60, 0, avatarX + 40, avatarY + 60, 80);
+            previewBg.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+            previewBg.addColorStop(1, 'rgba(255, 255, 255, 0.7)');
+            this.ctx.fillStyle = previewBg;
+            this.ctx.beginPath();
+            this.ctx.arc(avatarX + 40, avatarY + 60, 80, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            this.ctx.lineWidth = 3;
+            this.ctx.stroke();
+            this.ctx.restore();
+            
+            // 绘制Avatar（2.0倍大小），并向下微调
+            this.drawAvatarScaled(avatarX, avatarY + 10, avatarConfig, 2.0);
+            
+            // 绘制Avatar信息
+            this.ctx.fillStyle = '#FFFFFF';
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(selectedAvatar.charAt(0).toUpperCase() + selectedAvatar.slice(1) + ' Avatar', 
+                             panelX + panelWidth / 2, panelY + 250);
+            
+            // 绘制Avatar描述
+            this.ctx.font = '14px Arial';
+            this.ctx.fillStyle = '#CCCCCC';
+            const description = this.getAvatarDescription(selectedAvatar);
+            this.ctx.fillText(description, panelX + panelWidth / 2, panelY + 280);
+        }
+    }
+
+    // 绘制Avatar操作按钮
+    drawAvatarActionButtons() {
+        const actionButtons = ['apply', 'cancel'];
+        const buttonWidth = 120;
+        const buttonHeight = 50;
+        const centerX = this.width / 2;
+        const y = 520;
+        const spacing = 30;
+
+        actionButtons.forEach((action, index) => {
+            const btn = this.avatarButtons[action];
+            const x = centerX - buttonWidth - spacing / 2 + index * (buttonWidth + spacing);
+            
+            // 更新按钮位置
+            btn.x = x;
+            btn.y = y;
+            btn.width = buttonWidth;
+            btn.height = buttonHeight;
+
+            this.ctx.save();
+            
+            // 添加阴影
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 5;
+            
+            // 绘制渐变背景
+            const gradient = this.ctx.createLinearGradient(x, y, x, y + buttonHeight);
+            if (action === 'apply') {
+                if (btn.hover) {
+                    gradient.addColorStop(0, '#27AE60');
+                    gradient.addColorStop(1, '#1E8449');
+                } else {
+                    gradient.addColorStop(0, '#2ECC71');
+                    gradient.addColorStop(1, '#27AE60');
+                }
+            } else {
+                if (btn.hover) {
+                    gradient.addColorStop(0, '#E67E22');
+                    gradient.addColorStop(1, '#D35400');
+                } else {
+                    gradient.addColorStop(0, '#F39C12');
+                    gradient.addColorStop(1, '#E67E22');
+                }
+            }
+            
+            this.ctx.fillStyle = gradient;
+            this.roundRect(x, y, buttonWidth, buttonHeight, 10);
+            
+            // 重置阴影
+            this.ctx.shadowBlur = 0;
+            this.ctx.shadowOffsetX = 0;
+            this.ctx.shadowOffsetY = 0;
+            
+            // 绘制边框
+            this.ctx.strokeStyle = '#FFFFFF';
+            this.ctx.lineWidth = 3;
+            this.ctx.stroke();
+            
+            this.ctx.fillStyle = action === 'apply' ? '#FFFFFF' : '#000000';
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(btn.text, x + buttonWidth / 2, y + buttonHeight / 2);
+            
+            this.ctx.restore();
+        });
+    }
+
+    // 绘制Avatar小图标
+    drawAvatarIcon(x, y, avatarType, scale) {
+        if (this.avatarPresets[avatarType]) {
+            const avatarConfig = this.avatarPresets[avatarType];
+            this.drawAvatarScaled(x, y, avatarConfig, scale);
+        }
+    }
+
+    // 获取Avatar描述
+    getAvatarDescription(avatarType) {
+        const descriptions = {
+            male: 'Classic masculine style with jersey #1',
+            female: 'Elegant feminine style with jersey #7',
+            robot: 'Futuristic robotic design with jersey #88'
+        };
+        return descriptions[avatarType] || 'Unknown avatar type';
     }
 
     drawControlPanel(x, y) {
@@ -3077,6 +3711,46 @@ class FrogBasketballGame {
                 this.gameState = 'menu';
                 break;
         }
+    }
+
+    // Avatar选择按钮点击处理函数
+    onAvatarButtonClick(buttonKey) {
+        switch (buttonKey) {
+            case 'male':
+            case 'female':
+            case 'robot':
+                // 选择Avatar
+                this.avatarCustomization.selectedAvatar = buttonKey;
+                Object.keys(this.avatarButtons).forEach(key => {
+                    if (['male', 'female', 'robot'].includes(key)) {
+                        this.avatarButtons[key].active = (key === buttonKey);
+                    }
+                });
+                break;
+                
+            case 'apply':
+                // 应用Avatar选择
+                this.applyAvatarSelection();
+                break;
+                
+            case 'cancel':
+                // 取消并返回菜单
+                this.gameState = 'menu';
+                break;
+        }
+    }
+
+    // 应用Avatar选择
+    applyAvatarSelection() {
+        // 切换到Avatar模式
+        this.player.avatarMode = true;
+        this.player.selectedAvatar = this.avatarCustomization.selectedAvatar;
+        
+        // 保存Avatar选择到本地存储
+        this.saveAvatarToStorage();
+        
+        // 返回主菜单
+        this.gameState = 'menu';
     }
 
     getMaxCountForCategory(category) {
@@ -3465,6 +4139,168 @@ class FrogBasketballGame {
         
         // 清空按键状态
         this.keys = {};
+    }
+
+    // Avatar绘制函数 - 支持Male、Female、Robot三种预设
+    drawAvatarScaled(x, y, avatarConfig, scale) {
+        const bodyY = y + 12 * scale;
+
+        // 绘制身体 - 根据Avatar类型使用不同样式
+        this.drawAvatarBodyScaled(x, y, avatarConfig, scale);
+
+        // 绘制球衣号码
+        this.ctx.fillStyle = '#FFFFFF';
+        this.ctx.font = `bold ${16 * scale}px Arial`;
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(avatarConfig.number, x + 20 * scale, y + 35 * scale);
+
+        // 绘制头部
+        this.ctx.fillStyle = avatarConfig.head.skinColor;
+        if (avatarConfig.id === 'robot') {
+            // 原型机头部绘制
+            const colors = avatarConfig.jersey;
+            const headX = x + 20 * scale;
+            const headY = y + 8 * scale;
+            
+            // 头部主体
+            this.ctx.fillStyle = colors.color1;
+            this.roundRect(headX - 12 * scale, headY - 14 * scale, 24 * scale, 20 * scale, 8 * scale);
+
+            // 发光眼
+            this.ctx.save();
+            this.ctx.fillStyle = colors.color3; // 能源色
+            this.ctx.shadowColor = colors.color3;
+            this.ctx.shadowBlur = 10 * scale;
+            this.roundRect(headX - 8 * scale, headY - 6 * scale, 16 * scale, 4 * scale, 2 * scale);
+            this.ctx.restore();
+
+        } else {
+            // 普通头部 - 椭圆形脸型，更可爱
+            this.ctx.beginPath();
+            // 使用椭圆形脸型，稍微扁一点，更可爱
+            this.ctx.ellipse(x + 20 * scale, y + 8 * scale, 12 * scale, 11 * scale, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+
+        // 绘制头发（不同发型）
+        if (avatarConfig.head.hairColor) {
+            this.ctx.fillStyle = avatarConfig.head.hairColor;
+            this.drawHairStyleScaled(x + 20 * scale, y + 5 * scale, avatarConfig.head.hairStyle, scale);
+        }
+
+        // 运球动画 (0.7倍速)
+        const ballOffset = Math.sin(this.animationFrame * (Math.PI / (30 / this.player.animSpeed)) * 0.7) * 10 * scale;
+        const ballX = x + 40 * scale;
+        const ballY = y + 35 * scale + ballOffset;
+
+        // 篮球
+        this.ctx.fillStyle = '#FF8C00';
+        this.ctx.beginPath();
+        this.ctx.arc(ballX, ballY, 8 * scale, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // 篮球纹理
+        this.ctx.strokeStyle = '#000000';
+        this.ctx.lineWidth = 1 * scale;
+        this.ctx.beginPath();
+        this.ctx.arc(ballX, ballY, 8 * scale, 0, Math.PI * 2);
+        this.ctx.stroke();
+    }
+
+    // Avatar身体绘制函数 - 支持不同的衣服样式
+    drawAvatarBodyScaled(x, y, avatarConfig, scale) {
+        let bodyY = y + 12 * scale;
+        const bodyWidth = 30 * scale;
+        const bodyHeight = 35 * scale;
+        const bodyX = x + 5 * scale;
+
+        // 针对机器人，调整身体Y坐标，使其从头部正下方开始，避免重叠
+        if (avatarConfig.id === 'robot') {
+            bodyY = y + 20 * scale;
+        }
+
+        switch (avatarConfig.jersey.style) {
+            case 'gradient':
+                // 普通渐变 - Male Avatar
+                const gradient = this.ctx.createLinearGradient(bodyX, bodyY, bodyX, bodyY + bodyHeight);
+                gradient.addColorStop(0, avatarConfig.jersey.color1);
+                gradient.addColorStop(1, avatarConfig.jersey.color2);
+                this.ctx.fillStyle = gradient;
+                this.roundRect(bodyX, bodyY, bodyWidth, bodyHeight, 8 * scale);
+                break;
+            
+            case 'gradient_reverse':
+                // 倒渐变 - Female Avatar
+                const reverseGradient = this.ctx.createLinearGradient(bodyX, bodyY, bodyX, bodyY + bodyHeight);
+                reverseGradient.addColorStop(0, avatarConfig.jersey.color1); // 金色在上
+                reverseGradient.addColorStop(1, avatarConfig.jersey.color2); // 蓝色在下
+                this.ctx.fillStyle = reverseGradient;
+                this.roundRect(bodyX, bodyY, bodyWidth, bodyHeight, 8 * scale);
+                break;
+            
+            case 'blocks':
+                // 分块颜色 - 旧版Robot Avatar
+                const blockHeight = bodyHeight / 3;
+                
+                // 顶部块 - color1
+                this.ctx.fillStyle = avatarConfig.jersey.color1;
+                this.roundRect(bodyX, bodyY, bodyWidth, blockHeight, 8 * scale);
+                
+                // 中部块 - color2
+                this.ctx.fillStyle = avatarConfig.jersey.color2;
+                this.ctx.fillRect(bodyX, bodyY + blockHeight, bodyWidth, blockHeight);
+                
+                // 底部块 - color3
+                this.ctx.fillStyle = avatarConfig.jersey.color3;
+                this.ctx.fillRect(bodyX, bodyY + blockHeight * 2, bodyWidth, blockHeight);
+                
+                // 为底部块添加圆角
+                this.ctx.beginPath();
+                this.ctx.roundRect(bodyX, bodyY + blockHeight * 2, bodyWidth, blockHeight, 8 * scale);
+                this.ctx.fill();
+                break;
+            
+            case 'proto_unit':
+                // 原型机身体
+                const protoColors = avatarConfig.jersey;
+                const protoBodyX = x + 5 * scale;
+                const protoBodyY = y + 12 * scale;
+                const protoBodyWidth = 30 * scale;
+                const protoBodyHeight = 35 * scale;
+        
+                // 主体
+                this.ctx.fillStyle = protoColors.color1;
+                this.roundRect(protoBodyX, protoBodyY, protoBodyWidth, protoBodyHeight, 12 * scale);
+                // 细节
+                this.ctx.fillStyle = protoColors.color2;
+                this.roundRect(protoBodyX + 5 * scale, protoBodyY + 20 * scale, 20 * scale, 5 * scale, 3 * scale);
+                break;
+        }
+    }
+
+    // 绘制武士机甲头部
+    drawSamuraiMechHead(x, y, avatarConfig, scale) {
+        const colors = avatarConfig.jersey; // 从jersey获取颜色
+        const headX = x + 20 * scale;
+        const headY = y - 5 * scale;
+        
+        // 武士头盔主体
+        this.ctx.fillStyle = colors.color1; // 主色
+        this.ctx.fillRect(headX - 14 * scale, headY - 10 * scale, 28 * scale, 20 * scale);
+        
+        // 面具
+        this.ctx.fillStyle = colors.color2; // 副色
+        this.ctx.fillRect(headX - 12 * scale, headY - 3 * scale, 24 * scale, 12 * scale);
+        
+        // 角
+        this.ctx.fillStyle = colors.color3; // 细节色
+        this.ctx.fillRect(headX - 8 * scale, headY - 13 * scale, 4 * scale, 8 * scale);
+        this.ctx.fillRect(headX + 4 * scale, headY - 13 * scale, 4 * scale, 8 * scale);
+        
+        // 眼缝 (使用细节色)
+        this.ctx.fillStyle = colors.color3;
+        this.ctx.fillRect(headX - 8 * scale, headY + 1 * scale, 6 * scale, 2 * scale);
+        this.ctx.fillRect(headX + 2 * scale, headY + 1 * scale, 6 * scale, 2 * scale);
     }
 }
 
