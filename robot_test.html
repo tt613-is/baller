@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全新Robot形象设计方案 - 10种新风格</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1A1A1A;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .info {
+            background: #2C2C2C;
+            border: 2px solid #4A4A4A;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .test-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .robot-test {
+            background: #2C2C2C;
+            border: 2px solid #4A4A4A;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            min-width: 250px;
+            transition: transform 0.2s;
+        }
+
+        .robot-test:hover {
+            transform: translateY(-5px);
+        }
+        
+        .robot-test h3 {
+            margin-top: 0;
+            color: #00BFFF;
+            font-size: 18px;
+        }
+        
+        canvas {
+            border: 2px solid #666;
+            border-radius: 8px;
+            background: #F0F0F0;
+            margin: 10px 0;
+        }
+        
+        .robot-description {
+            font-size: 13px;
+            color: #CCCCCC;
+            margin: 5px 0;
+            text-align: left;
+            height: 70px; /* 固定高度 */
+        }
+        
+        .color-preview {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .color-block {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 1px solid #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h2>🤖 全新Robot形象设计方案 - 10种新风格</h2>
+        <p>为您重新设计的10种风格迥异的机器人方案，希望能提供新的灵感：</p>
+        <ul class="feature-list" style="text-align:left; max-width: 800px; margin: auto; columns: 2; column-gap: 40px;">
+            <li><strong>方案1: "原型机"</strong> - 极简未来风，流线型机体，优雅而高级。</li>
+            <li><strong>方案2: "蒸汽齿轮"</strong> - 维多利亚时代蒸汽朋克，黄铜与机械的美学。</li>
+            <li><strong>方案3: "盖亚卫士"</strong> - 自然魔幻风，岩石与藤蔓构成的森林傀儡。</li>
+            <li><strong>方案4: "复古电玩"</strong> - 80年代复古科幻，方正笨拙的可爱感。</li>
+            <li><strong>方案5: "拾荒者"</strong> - 后末日废土风，由废铁拼凑的实用主义。</li>
+            <li><strong>方案6: "武士机甲"</strong> - 日式机甲风，武士盔甲与现代科技的融合。</li>
+            <li><strong>方案7: "深海探索者"</strong> - 海洋主题，潜水器造型，抗压防水设计。</li>
+            <li><strong>方案8: "量子幽灵"</strong> - 虚拟现实风，半透明身体，数字化特效。</li>
+            <li><strong>方案9: "蜂巢守卫"</strong> - 昆虫仿生学，六边形蜂巢结构，集群智能。</li>
+            <li><strong>方案10: "星际游侠"</strong> - 太空西部风，牛仔与宇航员的混搭设计。</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <!-- 方案1: 原型机 -->
+        <div class="robot-test">
+            <h3>🤖 方案1: "原型机"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #F5F5F5;"></div>
+                <div class="color-block" style="background-color: #E0E0E0;"></div>
+                <div class="color-block" style="background-color: #00FFFF;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 极简未来<br>
+                • <b>特点:</b> 流线型机身，单眼发光条<br>
+                • <b>颜色:</b> 哑光白 / 银灰 / 青色能源
+            </div>
+            <canvas id="robot1Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案2: 蒸汽齿轮 -->
+        <div class="robot-test">
+            <h3>🤖 方案2: "蒸汽齿轮"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #B5A642;"></div>
+                <div class="color-block" style="background-color: #C77C35;"></div>
+                <div class="color-block" style="background-color: #5C3D2E;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 蒸汽朋克<br>
+                • <b>特点:</b> 齿轮、管道、铆钉、单片眼镜<br>
+                • <b>颜色:</b> 黄铜 / 红铜 / 深木色
+            </div>
+            <canvas id="robot2Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案3: 盖亚卫士 -->
+        <div class="robot-test">
+            <h3>🤖 方案3: "盖亚卫士"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #8D8D8D;"></div>
+                <div class="color-block" style="background-color: #4A5D23;"></div>
+                <div class="color-block" style="background-color: #7CFC00;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 自然魔幻<br>
+                • <b>特点:</b> 岩石身体，青苔，生命绿光<br>
+                • <b>颜色:</b> 岩石灰 / 青苔绿 / 能量绿
+            </div>
+            <canvas id="robot3Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案4: 复古电玩 -->
+        <div class="robot-test">
+            <h3>🤖 方案4: "复古电玩"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #FF3B30;"></div>
+                <div class="color-block" style="background-color: #007AFF;"></div>
+                <div class="color-block" style="background-color: #FFCC00;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 80年代复古<br>
+                • <b>特点:</b> 方正体型，塑料质感，天线<br>
+                • <b>颜色:</b> 鲜红 / 宝蓝 / 亮黄
+            </div>
+            <canvas id="robot4Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案5: 拾荒者 -->
+        <div class="robot-test">
+            <h3>🤖 方案5: "拾荒者"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #8B4513;"></div>
+                <div class="color-block" style="background-color: #4A4A4A;"></div>
+                <div class="color-block" style="background-color: #BDB76B;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 后末日废土<br>
+                • <b>特点:</b> 废铁拼凑，不对称，破旧感<br>
+                • <b>颜色:</b> 铁锈色 / 深灰 / 脏黄
+            </div>
+            <canvas id="robot5Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案6: 武士机甲 -->
+        <div class="robot-test">
+            <h3>🤖 方案6: "武士机甲"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #2F4F4F;"></div>
+                <div class="color-block" style="background-color: #DC143C;"></div>
+                <div class="color-block" style="background-color: #FFD700;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 日式机甲<br>
+                • <b>特点:</b> 武士盔甲，肩甲，面具<br>
+                • <b>颜色:</b> 暗钢灰 / 深红 / 金色装饰
+            </div>
+            <canvas id="robot6Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案7: 深海探索者 -->
+        <div class="robot-test">
+            <h3>🤖 方案7: "深海探索者"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #191970;"></div>
+                <div class="color-block" style="background-color: #00CED1;"></div>
+                <div class="color-block" style="background-color: #FFFF00;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 海洋主题<br>
+                • <b>特点:</b> 圆形舷窗，探照灯，防水密封<br>
+                • <b>颜色:</b> 深海蓝 / 青绿 / 警示黄
+            </div>
+            <canvas id="robot7Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案8: 量子幽灵 -->
+        <div class="robot-test">
+            <h3>🤖 方案8: "量子幽灵"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #9370DB;"></div>
+                <div class="color-block" style="background-color: #00FFFF;"></div>
+                <div class="color-block" style="background-color: #FF1493;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 虚拟现实<br>
+                • <b>特点:</b> 半透明效果，数字矩阵，光效<br>
+                • <b>颜色:</b> 量子紫 / 数据青 / 能量粉
+            </div>
+            <canvas id="robot8Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案9: 蜂巢守卫 -->
+        <div class="robot-test">
+            <h3>🤖 方案9: "蜂巢守卫"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #DAA520;"></div>
+                <div class="color-block" style="background-color: #8B4513;"></div>
+                <div class="color-block" style="background-color: #000000;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 昆虫仿生<br>
+                • <b>特点:</b> 六边形结构，复眼，触角<br>
+                • <b>颜色:</b> 蜂蜜金 / 琥珀棕 / 深黑
+            </div>
+            <canvas id="robot9Canvas" width="200" height="150"></canvas>
+        </div>
+
+        <!-- 方案10: 星际游侠 -->
+        <div class="robot-test">
+            <h3>🤖 方案10: "星际游侠"</h3>
+            <div class="color-preview">
+                <div class="color-block" style="background-color: #8B4513;"></div>
+                <div class="color-block" style="background-color: #C0C0C0;"></div>
+                <div class="color-block" style="background-color: #FF4500;"></div>
+            </div>
+            <div class="robot-description">
+                • <b>风格:</b> 太空西部<br>
+                • <b>特点:</b> 牛仔帽，星章，推进器靴<br>
+                • <b>颜色:</b> 皮革棕 / 金属银 / 火焰橙
+            </div>
+            <canvas id="robot10Canvas" width="200" height="150"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const robotConfigs = {
+            robot1: { // 原型机
+                id: "proto_unit",
+                colors: { main: "#F5F5F5", accent: "#E0E0E0", energy: "#00FFFF" }
+            },
+            robot2: { // 蒸汽齿轮
+                id: "cogsworth",
+                colors: { main: "#B5A642", accent: "#C77C35", detail: "#5C3D2E" }
+            },
+            robot3: { // 盖亚卫士
+                id: "gaia_guardian",
+                colors: { main: "#8D8D8D", accent: "#4A5D23", energy: "#7CFC00" }
+            },
+            robot4: { // 复古电玩
+                id: "retro_tron",
+                colors: { main: "#FF3B30", accent: "#007AFF", detail: "#FFCC00" }
+            },
+            robot5: { // 拾荒者
+                id: "junker",
+                colors: { main: "#8B4513", accent: "#4A4A4A", detail: "#BDB76B" }
+            },
+            robot6: { // 武士机甲
+                id: "samurai_mech",
+                colors: { main: "#2F4F4F", accent: "#DC143C", detail: "#FFD700" }
+            },
+            robot7: { // 深海探索者
+                id: "deep_sea",
+                colors: { main: "#191970", accent: "#00CED1", detail: "#FFFF00" }
+            },
+            robot8: { // 量子幽灵
+                id: "quantum_ghost",
+                colors: { main: "#9370DB", accent: "#00FFFF", detail: "#FF1493" }
+            },
+            robot9: { // 蜂巢守卫
+                id: "hive_guardian",
+                colors: { main: "#DAA520", accent: "#8B4513", detail: "#000000" }
+            },
+            robot10: { // 星际游侠
+                id: "space_ranger",
+                colors: { main: "#8B4513", accent: "#C0C0C0", detail: "#FF4500" }
+            }
+        };
+
+        // 统一绘制函数
+        function drawRobot(canvasId, config) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const scale = 1.5;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#F0F0F0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 + 10;
+            
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.scale(scale, scale);
+
+            drawRobotBody(ctx, config);
+            drawRobotHead(ctx, config);
+            
+            ctx.restore();
+        }
+
+        // 绘制机器人身体
+        function drawRobotBody(ctx, config) {
+            const colors = config.colors;
+            ctx.save();
+            switch (config.id) {
+                case 'proto_unit':
+                    ctx.fillStyle = colors.main;
+                    roundRect(ctx, -15, -10, 30, 35, 12);
+                    ctx.fillStyle = colors.accent;
+                    roundRect(ctx, -10, 5, 20, 5, 3);
+                    break;
+                case 'cogsworth':
+                    ctx.fillStyle = colors.main;
+                    roundRect(ctx, -18, -10, 36, 40, 5);
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-15, 0, 30, 10);
+                    // 管道
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(15, -5, 4, 15);
+                    // 铆钉
+                    for(let i = 0; i < 4; i++) {
+                        ctx.beginPath();
+                        ctx.arc(-12 + i*8, -5, 1, 0, Math.PI*2);
+                        ctx.fill();
+                    }
+                    break;
+                case 'gaia_guardian':
+                    // 不规则岩石身体
+                    ctx.fillStyle = colors.main;
+                    ctx.beginPath();
+                    ctx.moveTo(-20, -10);
+                    ctx.quadraticCurveTo(-25, 10, -15, 25);
+                    ctx.quadraticCurveTo(0, 30, 18, 22);
+                    ctx.quadraticCurveTo(25, 0, 15, -10);
+                    ctx.closePath();
+                    ctx.fill();
+                    // 青苔
+                    ctx.fillStyle = colors.accent;
+                    ctx.beginPath();
+                    ctx.arc(10, -5, 8, 0, Math.PI*2);
+                    ctx.fill();
+                    break;
+                case 'retro_tron':
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-18, -12, 36, 40);
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-15, -10, 30, 35);
+                    // 胸前细节
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-10, 0, 20, 10);
+                    break;
+                case 'junker':
+                    // 拼凑的身体
+                    ctx.fillStyle = colors.main; // 主体
+                    ctx.fillRect(-18, -10, 25, 38);
+                    ctx.fillStyle = colors.accent; // 补丁1
+                    ctx.fillRect(0, 5, 15, 20);
+                    ctx.fillStyle = colors.detail; // 补丁2
+                    ctx.fillRect(-15, -5, 20, 10);
+                    break;
+                case 'samurai_mech':
+                    // 武士机甲身体
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-16, -10, 32, 38);
+                    // 胸甲
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-14, -8, 28, 15);
+                    // 肩甲
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-20, -12, 8, 12);
+                    ctx.fillRect(12, -12, 8, 12);
+                    // 腰带
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-16, 10, 32, 4);
+                    break;
+                case 'deep_sea':
+                    // 圆形潜水器身体
+                    ctx.fillStyle = colors.main;
+                    ctx.beginPath();
+                    ctx.arc(0, 5, 18, 0, Math.PI * 2);
+                    ctx.fill();
+                    // 装甲带
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-15, 0, 30, 6);
+                    // 推进器
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-22, 8, 6, 8);
+                    ctx.fillRect(16, 8, 6, 8);
+                    break;
+                case 'quantum_ghost':
+                    // 半透明身体效果
+                    ctx.globalAlpha = 0.7;
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-15, -10, 30, 35);
+                    // 数字矩阵效果
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = colors.accent;
+                    for(let i = 0; i < 5; i++) {
+                        ctx.fillRect(-12 + i*6, -8 + i*4, 2, 2);
+                    }
+                    break;
+                case 'hive_guardian':
+                    // 六边形蜂巢结构
+                    ctx.fillStyle = colors.main;
+                    drawHexagon(ctx, 0, 5, 16);
+                    // 内部结构
+                    ctx.fillStyle = colors.accent;
+                    drawHexagon(ctx, 0, 5, 10);
+                    // 蜂巢格子
+                    ctx.strokeStyle = colors.detail;
+                    ctx.lineWidth = 1;
+                    for(let i = 0; i < 3; i++) {
+                        for(let j = 0; j < 3; j++) {
+                            drawHexagon(ctx, -8 + i*8, -5 + j*8, 3, true);
+                        }
+                    }
+                    break;
+                case 'space_ranger':
+                    // 牛仔风格身体
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-16, -10, 32, 35);
+                    // 马甲
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-12, -8, 24, 20);
+                    // 星章
+                    ctx.fillStyle = colors.detail;
+                    drawStar(ctx, 0, 0, 5, 5, 2);
+                    // 腰带
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-16, 8, 32, 4);
+                    break;
+            }
+            ctx.restore();
+        }
+        
+        // 绘制机器人头部
+        function drawRobotHead(ctx, config) {
+            const colors = config.colors;
+            ctx.save();
+            ctx.translate(0, -30); // 头部位置
+            switch (config.id) {
+                case 'proto_unit':
+                    ctx.fillStyle = colors.main;
+                    roundRect(ctx, -12, -12, 24, 20, 8);
+                    // 发光眼
+                    ctx.fillStyle = colors.energy;
+                    ctx.shadowColor = colors.energy;
+                    ctx.shadowBlur = 10;
+                    roundRect(ctx, -8, -4, 16, 4, 2);
+                    break;
+                case 'cogsworth':
+                    // 礼帽
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-15, -10, 30, 2);
+                    ctx.fillRect(-10, -20, 20, 10);
+                    // 头部
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-12, -10, 24, 15);
+                    // 单片眼镜
+                    ctx.fillStyle = colors.accent;
+                    ctx.beginPath();
+                    ctx.arc(8, -2, 5, 0, Math.PI*2);
+                    ctx.fill();
+                    break;
+                case 'gaia_guardian':
+                    // 岩石头部
+                    ctx.fillStyle = colors.main;
+                    ctx.beginPath();
+                    ctx.moveTo(-15, -10);
+                    ctx.quadraticCurveTo(-20, 0, -10, 8);
+                    ctx.quadraticCurveTo(15, 10, 15, -12);
+                    ctx.closePath();
+                    ctx.fill();
+                    // 眼睛
+                    ctx.fillStyle = colors.energy;
+                    ctx.shadowColor = colors.energy;
+                    ctx.shadowBlur = 8;
+                    ctx.fillRect(-8, -4, 5, 3);
+                    ctx.fillRect(3, -5, 5, 3);
+                    break;
+                case 'retro_tron':
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-12, -15, 24, 20);
+                    // 眼睛
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-8, -8, 16, 8);
+                    // 天线
+                    ctx.strokeStyle = colors.accent;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(8, -15);
+                    ctx.lineTo(12, -22);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(12, -22, 2, 0, Math.PI*2);
+                    ctx.fillStyle = colors.accent;
+                    ctx.fill();
+                    break;
+                case 'junker':
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-13, -12, 26, 18);
+                    // 眼睛
+                    ctx.fillStyle = '#FF0000';
+                    ctx.beginPath();
+                    ctx.arc(-5, -3, 4, 0, Math.PI*2); // 圆眼睛
+                    ctx.fill();
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.fillRect(4, -5, 6, 6); // 方眼睛
+                    break;
+                case 'samurai_mech':
+                    // 武士头盔
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-14, -15, 28, 20);
+                    // 面具
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-12, -8, 24, 12);
+                    // 角
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-8, -18, 4, 8);
+                    ctx.fillRect(4, -18, 4, 8);
+                    // 眼缝
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-8, -4, 6, 2);
+                    ctx.fillRect(2, -4, 6, 2);
+                    break;
+                case 'deep_sea':
+                    // 潜水头盔
+                    ctx.fillStyle = colors.main;
+                    ctx.beginPath();
+                    ctx.arc(0, -2, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    // 舷窗
+                    ctx.fillStyle = colors.accent;
+                    ctx.beginPath();
+                    ctx.arc(0, -2, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    // 探照灯
+                    ctx.fillStyle = colors.detail;
+                    ctx.beginPath();
+                    ctx.arc(-12, -8, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(12, -8, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                case 'quantum_ghost':
+                    // 虚拟头部
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-12, -15, 24, 20);
+                    ctx.globalAlpha = 1;
+                    // 数字眼睛
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-8, -6, 6, 6);
+                    ctx.fillRect(2, -6, 6, 6);
+                    // 数据流
+                    ctx.fillStyle = colors.detail;
+                    for(let i = 0; i < 3; i++) {
+                        ctx.fillRect(-10 + i*7, -12, 1, 8);
+                    }
+                    break;
+                case 'hive_guardian':
+                    // 昆虫头部
+                    ctx.fillStyle = colors.main;
+                    drawHexagon(ctx, 0, -5, 12);
+                    // 复眼
+                    ctx.fillStyle = colors.detail;
+                    for(let i = 0; i < 2; i++) {
+                        for(let j = 0; j < 3; j++) {
+                            ctx.beginPath();
+                            ctx.arc(-6 + i*12, -8 + j*4, 2, 0, Math.PI*2);
+                            ctx.fill();
+                        }
+                    }
+                    // 触角
+                    ctx.strokeStyle = colors.accent;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-8, -15);
+                    ctx.lineTo(-12, -20);
+                    ctx.moveTo(8, -15);
+                    ctx.lineTo(12, -20);
+                    ctx.stroke();
+                    break;
+                case 'space_ranger':
+                    // 牛仔帽
+                    ctx.fillStyle = colors.main;
+                    ctx.fillRect(-18, -8, 36, 3);
+                    ctx.fillRect(-12, -18, 24, 10);
+                    // 头部
+                    ctx.fillStyle = colors.accent;
+                    ctx.fillRect(-10, -15, 20, 12);
+                    // 星章帽徽
+                    ctx.fillStyle = colors.detail;
+                    drawStar(ctx, 0, -12, 3, 5, 2);
+                    // 眼睛
+                    ctx.fillStyle = colors.detail;
+                    ctx.fillRect(-6, -8, 3, 2);
+                    ctx.fillRect(3, -8, 3, 2);
+                    break;
+            }
+            ctx.restore();
+        }
+
+        // 辅助函数：绘制六边形
+        function drawHexagon(ctx, x, y, size, strokeOnly = false) {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const px = x + size * Math.cos(angle);
+                const py = y + size * Math.sin(angle);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            if (strokeOnly) ctx.stroke();
+            else ctx.fill();
+        }
+
+        // 辅助函数：绘制星形
+        function drawStar(ctx, x, y, outerRadius, innerRadius, points) {
+            ctx.beginPath();
+            for (let i = 0; i < points * 2; i++) {
+                const angle = (Math.PI / points) * i;
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const px = x + radius * Math.cos(angle - Math.PI/2);
+                const py = y + radius * Math.sin(angle - Math.PI/2);
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 圆角矩形辅助函数
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 初始化
+        window.onload = function() {
+            Object.keys(robotConfigs).forEach((key, index) => {
+                drawRobot(`robot${index+1}Canvas`, robotConfigs[key]);
+            });
+        };
+    </script>
+</body>
+</html> 

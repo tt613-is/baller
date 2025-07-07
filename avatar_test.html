@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Female发型方案选择测试 - 新设计</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2C3E50;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .info {
+            background: #34495E;
+            border: 2px solid #5A6C7D;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .test-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .avatar-test {
+            background: #34495E;
+            border: 2px solid #5A6C7D;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            min-width: 250px;
+        }
+        
+        .avatar-test h3 {
+            margin-top: 0;
+            color: #E74C3C;
+            font-size: 18px;
+        }
+        
+        canvas {
+            border: 2px solid #7F8C8D;
+            border-radius: 8px;
+            background: #ECF0F1;
+            margin: 10px 0;
+        }
+        
+        .controls {
+            margin-top: 15px;
+        }
+        
+        .controls label {
+            display: block;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .controls input[type="range"] {
+            width: 120px;
+            margin: 0 10px;
+        }
+        
+        .controls button {
+            background: #E74C3C;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .controls button:hover {
+            background: #C0392B;
+        }
+        
+        .feature-list {
+            text-align: left;
+            margin: 10px 0;
+        }
+        
+        .feature-list li {
+            margin: 5px 0;
+        }
+        
+        .hairstyle-description {
+            font-size: 12px;
+            color: #BDC3C7;
+            margin: 5px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <h2>💇‍♀️ Female发型方案选择测试 - 新设计</h2>
+        <p>根据参考图片重新设计的5种Female发型方案，融合了可爱、现代的设计元素：</p>
+        <ul class="feature-list">
+            <li><strong>方案1: 可爱双马尾</strong> - 参考图片风格，高位双马尾，圆润可爱</li>
+            <li><strong>方案2: 不对称短发</strong> - 现代感短发，一侧较长，时尚个性</li>
+            <li><strong>方案3: 蓬松卷发</strong> - 自然卷曲，蓬松质感，甜美风格</li>
+            <li><strong>方案4: 层次刘海</strong> - 厚重刘海配中长发，日系可爱风</li>
+            <li><strong>方案5: 侧边低马尾</strong> - 保持原设计，优雅不对称风格</li>
+        </ul>
+        <p>使用与Male相同的肤色，保持Avatar之间的一致性！</p>
+    </div>
+
+    <div class="test-container">
+        <div class="avatar-test">
+            <h3>👩 方案1: 可爱双马尾</h3>
+            <div class="hairstyle-description">
+                • 参考图片风格设计<br>
+                • 高位双马尾，圆润可爱<br>
+                • 与Male统一肤色
+            </div>
+            <canvas id="hairstyle1Canvas" width="200" height="150"></canvas>
+            <div class="controls">
+                <label>缩放比例:
+                    <input type="range" id="hairstyle1Scale" min="0.5" max="3" step="0.1" value="1.5">
+                    <span id="hairstyle1ScaleValue">1.5x</span>
+                </label>
+                <button onclick="drawHairstyle1()">重新绘制</button>
+            </div>
+        </div>
+
+        <div class="avatar-test">
+            <h3>👩 方案2: 不对称短发</h3>
+            <div class="hairstyle-description">
+                • 现代感短发设计<br>
+                • 一侧较长，时尚个性<br>
+                • 都市女性风格
+            </div>
+            <canvas id="hairstyle2Canvas" width="200" height="150"></canvas>
+            <div class="controls">
+                <label>缩放比例:
+                    <input type="range" id="hairstyle2Scale" min="0.5" max="3" step="0.1" value="1.5">
+                    <span id="hairstyle2ScaleValue">1.5x</span>
+                </label>
+                <button onclick="drawHairstyle2()">重新绘制</button>
+            </div>
+        </div>
+
+        <div class="avatar-test">
+            <h3>👩 方案3: 蓬松卷发</h3>
+            <div class="hairstyle-description">
+                • 自然卷曲质感<br>
+                • 蓬松柔软，甜美风格<br>
+                • 浪漫女性气质
+            </div>
+            <canvas id="hairstyle3Canvas" width="200" height="150"></canvas>
+            <div class="controls">
+                <label>缩放比例:
+                    <input type="range" id="hairstyle3Scale" min="0.5" max="3" step="0.1" value="1.5">
+                    <span id="hairstyle3ScaleValue">1.5x</span>
+                </label>
+                <button onclick="drawHairstyle3()">重新绘制</button>
+            </div>
+        </div>
+
+        <div class="avatar-test">
+            <h3>👩 方案4: 层次刘海</h3>
+            <div class="hairstyle-description">
+                • 厚重刘海设计<br>
+                • 中长发配层次感<br>
+                • 日系可爱风格
+            </div>
+            <canvas id="hairstyle4Canvas" width="200" height="150"></canvas>
+            <div class="controls">
+                <label>缩放比例:
+                    <input type="range" id="hairstyle4Scale" min="0.5" max="3" step="0.1" value="1.5">
+                    <span id="hairstyle4ScaleValue">1.5x</span>
+                </label>
+                <button onclick="drawHairstyle4()">重新绘制</button>
+            </div>
+        </div>
+
+        <div class="avatar-test">
+            <h3>👩 方案5: 侧边低马尾</h3>
+            <div class="hairstyle-description">
+                • 现代不对称美学<br>
+                • 侧边束发设计<br>
+                • 优雅个性风格
+            </div>
+            <canvas id="hairstyle5Canvas" width="200" height="150"></canvas>
+            <div class="controls">
+                <label>缩放比例:
+                    <input type="range" id="hairstyle5Scale" min="0.5" max="3" step="0.1" value="1.5">
+                    <span id="hairstyle5ScaleValue">1.5x</span>
+                </label>
+                <button onclick="drawHairstyle5()">重新绘制</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="info">
+        <h2>🧪 测试说明</h2>
+        <ul class="feature-list">
+            <li>前4个方案根据参考图片重新设计，融合可爱和现代元素</li>
+            <li>使用深色皮肤色调，更贴近参考图片风格</li>
+            <li>每种发型都有独特的个性和适用场景</li>
+            <li>方案5保持原有的侧边低马尾设计</li>
+            <li>调整缩放比例可以查看不同大小的发型细节</li>
+        </ul>
+    </div>
+
+    <script>
+        // 基础Female Avatar配置 - 使用与Male相同的肤色
+        const baseFemaleConfig = {
+            id: "female", 
+            name: "Female",
+            description: "Female character with various hairstyles",
+            head: {
+                skinColor: "#FFDBAC",  // 与Male相同的肤色
+                hairColor: "#2C1810",  // 深棕色/黑色头发
+                hairStyle: "ponytail1" // 默认，会根据方案动态改变
+            },
+            jersey: {
+                color1: "#FFD700",  // Classic Blue 倒渐变 - 副色变主色
+                color2: "#00529B",  // Classic Blue 倒渐变 - 主色变副色
+                style: "gradient_reverse"  // 倒渐变
+            },
+            number: "7"
+        };
+
+        let animationFrame = 0;
+
+        // 绘制函数
+        function drawAvatar(canvasId, avatarConfig, scale) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景
+            ctx.fillStyle = '#ECF0F1';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 计算居中位置
+            const centerX = canvas.width / 2 - 20 * scale;
+            const centerY = canvas.height / 2 - 25 * scale;
+            
+            // 绘制Avatar
+            drawAvatarScaled(ctx, centerX, centerY, avatarConfig, scale);
+        }
+
+        // Avatar绘制函数
+        function drawAvatarScaled(ctx, x, y, avatarConfig, scale) {
+            const bodyY = y + 12 * scale;
+
+            // 绘制身体 - 倒渐变样式
+            drawAvatarBodyScaled(ctx, x, y, avatarConfig, scale);
+
+            // 绘制球衣号码
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `bold ${16 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText(avatarConfig.number, x + 20 * scale, y + 35 * scale);
+
+            // 绘制头部 - 稍微调整脸型，更圆润可爱
+            ctx.fillStyle = avatarConfig.head.skinColor;
+            ctx.beginPath();
+            // 使用椭圆形脸型，稍微扁一点，更可爱
+            ctx.ellipse(x + 20 * scale, y + 8 * scale, 12 * scale, 11 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 绘制头发（不同发型）
+            if (avatarConfig.head.hairColor) {
+                ctx.fillStyle = avatarConfig.head.hairColor;
+                drawHairStyleScaled(ctx, x + 20 * scale, y + 5 * scale, avatarConfig.head.hairStyle, scale);
+            }
+
+            // 运球动画 (简化版)
+            const ballOffset = Math.sin(animationFrame * 0.1) * 5 * scale;
+            const ballX = x + 40 * scale;
+            const ballY = y + 35 * scale + ballOffset;
+
+            // 篮球
+            ctx.fillStyle = '#FF8C00';
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, 8 * scale, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 篮球纹理
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1 * scale;
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, 8 * scale, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Avatar身体绘制函数
+        function drawAvatarBodyScaled(ctx, x, y, avatarConfig, scale) {
+            let bodyY = y + 12 * scale;
+            const bodyWidth = 30 * scale;
+            const bodyHeight = 35 * scale;
+            const bodyX = x + 5 * scale;
+
+            // 倒渐变样式
+            const reverseGradient = ctx.createLinearGradient(bodyX, bodyY, bodyX, bodyY + bodyHeight);
+            reverseGradient.addColorStop(0, avatarConfig.jersey.color1); // 金色在上
+            reverseGradient.addColorStop(1, avatarConfig.jersey.color2); // 蓝色在下
+            ctx.fillStyle = reverseGradient;
+            roundRect(ctx, bodyX, bodyY, bodyWidth, bodyHeight, 8 * scale);
+        }
+
+        // 头发绘制函数 - 重新设计前4种发型方案
+        function drawHairStyleScaled(ctx, x, y, style, scale) {
+            ctx.beginPath();
+            switch (style) {
+                case 'ponytail1':
+                    // 方案1: 可爱双马尾 - 参考图片风格，高位双马尾
+                    // 1. 绘制基础头发覆盖 - 更完整的覆盖
+                    ctx.arc(x, y, 11 * scale, Math.PI * 1.05, Math.PI * 1.95);
+                    
+                    // 2. 前刘海 - 可爱风格
+                    ctx.moveTo(x - 8 * scale, y - 6 * scale);
+                    ctx.quadraticCurveTo(x - 4 * scale, y - 8 * scale, x, y - 7 * scale);
+                    ctx.quadraticCurveTo(x + 4 * scale, y - 8 * scale, x + 8 * scale, y - 6 * scale);
+                    
+                    // 3. 左侧高位马尾 - 更高更可爱
+                    ctx.moveTo(x - 9 * scale, y - 2 * scale);
+                    ctx.bezierCurveTo(
+                        x - 15 * scale, y + 2 * scale,   // 向外弯曲
+                        x - 18 * scale, y + 8 * scale,   // 下垂
+                        x - 12 * scale, y + 16 * scale   // 马尾末端
+                    );
+                    ctx.lineTo(x - 8 * scale, y + 14 * scale);
+                    ctx.lineTo(x - 8 * scale, y + 1 * scale);
+                    
+                    // 4. 右侧高位马尾 - 对称设计
+                    ctx.moveTo(x + 9 * scale, y - 2 * scale);
+                    ctx.bezierCurveTo(
+                        x + 15 * scale, y + 2 * scale,   // 向外弯曲
+                        x + 18 * scale, y + 8 * scale,   // 下垂
+                        x + 12 * scale, y + 16 * scale   // 马尾末端
+                    );
+                    ctx.lineTo(x + 8 * scale, y + 14 * scale);
+                    ctx.lineTo(x + 8 * scale, y + 1 * scale);
+                    break;
+                    
+                case 'ponytail2':
+                    // 方案2: 不对称短发 - 现代感设计
+                    // 1. 基础短发轮廓
+                    ctx.arc(x, y, 10 * scale, Math.PI * 1.1, Math.PI * 1.9);
+                    
+                    // 2. 左侧较短的头发
+                    ctx.moveTo(x - 10 * scale, y - 1 * scale);
+                    ctx.quadraticCurveTo(x - 12 * scale, y + 3 * scale, x - 8 * scale, y + 8 * scale);
+                    ctx.lineTo(x - 6 * scale, y + 6 * scale);
+                    
+                    // 3. 右侧较长的头发 - 不对称设计
+                    ctx.moveTo(x + 10 * scale, y - 1 * scale);
+                    ctx.bezierCurveTo(
+                        x + 14 * scale, y + 2 * scale,
+                        x + 16 * scale, y + 8 * scale,
+                        x + 12 * scale, y + 14 * scale
+                    );
+                    ctx.lineTo(x + 8 * scale, y + 12 * scale);
+                    ctx.lineTo(x + 9 * scale, y + 4 * scale);
+                    
+                    // 4. 前刘海 - 斜刘海
+                    ctx.moveTo(x - 6 * scale, y - 6 * scale);
+                    ctx.quadraticCurveTo(x + 2 * scale, y - 7 * scale, x + 8 * scale, y - 4 * scale);
+                    break;
+                    
+                case 'ponytail3':
+                    // 方案3: 蓬松卷发 - 自然卷曲质感
+                    // 1. 蓬松的基础形状
+                    ctx.arc(x, y, 12 * scale, Math.PI * 1.0, Math.PI * 2.0);
+                    
+                    // 2. 左侧卷发 - 多个小卷
+                    ctx.moveTo(x - 12 * scale, y - 2 * scale);
+                    ctx.bezierCurveTo(
+                        x - 16 * scale, y + 1 * scale,
+                        x - 14 * scale, y + 5 * scale,
+                        x - 10 * scale, y + 8 * scale
+                    );
+                    ctx.bezierCurveTo(
+                        x - 14 * scale, y + 10 * scale,
+                        x - 16 * scale, y + 14 * scale,
+                        x - 8 * scale, y + 16 * scale
+                    );
+                    
+                    // 3. 右侧卷发 - 对称但稍有变化
+                    ctx.moveTo(x + 12 * scale, y - 2 * scale);
+                    ctx.bezierCurveTo(
+                        x + 16 * scale, y + 1 * scale,
+                        x + 14 * scale, y + 5 * scale,
+                        x + 10 * scale, y + 8 * scale
+                    );
+                    ctx.bezierCurveTo(
+                        x + 14 * scale, y + 10 * scale,
+                        x + 15 * scale, y + 14 * scale,
+                        x + 9 * scale, y + 15 * scale
+                    );
+                    
+                    // 4. 顶部蓬松效果
+                    ctx.moveTo(x - 8 * scale, y - 8 * scale);
+                    ctx.quadraticCurveTo(x - 4 * scale, y - 10 * scale, x, y - 8 * scale);
+                    ctx.quadraticCurveTo(x + 4 * scale, y - 10 * scale, x + 8 * scale, y - 8 * scale);
+                    break;
+                    
+                case 'ponytail4':
+                    // 方案4: 层次刘海 - 日系可爱风格
+                    // 1. 基础中长发
+                    ctx.arc(x, y, 10 * scale, Math.PI * 1.1, Math.PI * 1.9);
+                    
+                    // 2. 厚重刘海 - 日系特色
+                    ctx.moveTo(x - 10 * scale, y - 4 * scale);
+                    ctx.lineTo(x - 8 * scale, y - 8 * scale);
+                    ctx.lineTo(x - 4 * scale, y - 9 * scale);
+                    ctx.lineTo(x, y - 8 * scale);
+                    ctx.lineTo(x + 4 * scale, y - 9 * scale);
+                    ctx.lineTo(x + 8 * scale, y - 8 * scale);
+                    ctx.lineTo(x + 10 * scale, y - 4 * scale);
+                    ctx.lineTo(x + 8 * scale, y - 2 * scale);
+                    ctx.lineTo(x - 8 * scale, y - 2 * scale);
+                    
+                    // 3. 左侧中长发 - 层次感
+                    ctx.moveTo(x - 10 * scale, y + 2 * scale);
+                    ctx.bezierCurveTo(
+                        x - 12 * scale, y + 6 * scale,
+                        x - 10 * scale, y + 12 * scale,
+                        x - 6 * scale, y + 16 * scale
+                    );
+                    ctx.lineTo(x - 4 * scale, y + 14 * scale);
+                    ctx.lineTo(x - 8 * scale, y + 4 * scale);
+                    
+                    // 4. 右侧中长发 - 对称层次
+                    ctx.moveTo(x + 10 * scale, y + 2 * scale);
+                    ctx.bezierCurveTo(
+                        x + 12 * scale, y + 6 * scale,
+                        x + 10 * scale, y + 12 * scale,
+                        x + 6 * scale, y + 16 * scale
+                    );
+                    ctx.lineTo(x + 4 * scale, y + 14 * scale);
+                    ctx.lineTo(x + 8 * scale, y + 4 * scale);
+                    break;
+                    
+                case 'ponytail5':
+                    // 方案5: 侧边低马尾 (保持原设计) - 现代不对称美学
+                    // 1. 绘制基础头发覆盖，稍微偏向左侧
+                    ctx.arc(x, y, 10 * scale, Math.PI * 1.1, Math.PI * 1.9);
+                    
+                    // 2. 左侧头发自然垂落
+                    ctx.moveTo(x - 10 * scale, y);
+                    ctx.lineTo(x - 8 * scale, y + 6 * scale);
+                    ctx.lineTo(x - 6 * scale, y + 4 * scale);
+                    
+                    // 3. 右侧头发向后聚拢到侧边
+                    ctx.moveTo(x + 10 * scale, y - 2 * scale);
+                    ctx.quadraticCurveTo(x + 14 * scale, y + 2 * scale, x + 12 * scale, y + 8 * scale);
+                    
+                    // 4. 侧边低位马尾 - 在右侧较低的位置
+                    ctx.moveTo(x + 12 * scale, y + 8 * scale); // 马尾起始点
+                    ctx.bezierCurveTo(
+                        x + 16 * scale, y + 10 * scale, // 控制点1 (向外)
+                        x + 18 * scale, y + 16 * scale, // 控制点2 (向下)
+                        x + 14 * scale, y + 20 * scale  // 马尾末端
+                    );
+                    ctx.lineTo(x + 10 * scale, y + 18 * scale); // 马尾内侧
+                    ctx.lineTo(x + 11 * scale, y + 10 * scale); // 连回马尾根部
+                    
+                    // 5. 添加一些细节发丝增加自然感
+                    ctx.moveTo(x + 13 * scale, y + 12 * scale);
+                    ctx.lineTo(x + 15 * scale, y + 17 * scale);
+                    break;
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 圆角矩形函数
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 绘制函数 - 每种发型方案
+        function drawHairstyle1() {
+            const scale = parseFloat(document.getElementById('hairstyle1Scale').value);
+            document.getElementById('hairstyle1ScaleValue').textContent = scale + 'x';
+            const config = {...baseFemaleConfig, head: {...baseFemaleConfig.head, hairStyle: 'ponytail1'}};
+            drawAvatar('hairstyle1Canvas', config, scale);
+        }
+
+        function drawHairstyle2() {
+            const scale = parseFloat(document.getElementById('hairstyle2Scale').value);
+            document.getElementById('hairstyle2ScaleValue').textContent = scale + 'x';
+            const config = {...baseFemaleConfig, head: {...baseFemaleConfig.head, hairStyle: 'ponytail2'}};
+            drawAvatar('hairstyle2Canvas', config, scale);
+        }
+
+        function drawHairstyle3() {
+            const scale = parseFloat(document.getElementById('hairstyle3Scale').value);
+            document.getElementById('hairstyle3ScaleValue').textContent = scale + 'x';
+            const config = {...baseFemaleConfig, head: {...baseFemaleConfig.head, hairStyle: 'ponytail3'}};
+            drawAvatar('hairstyle3Canvas', config, scale);
+        }
+
+        function drawHairstyle4() {
+            const scale = parseFloat(document.getElementById('hairstyle4Scale').value);
+            document.getElementById('hairstyle4ScaleValue').textContent = scale + 'x';
+            const config = {...baseFemaleConfig, head: {...baseFemaleConfig.head, hairStyle: 'ponytail4'}};
+            drawAvatar('hairstyle4Canvas', config, scale);
+        }
+
+        function drawHairstyle5() {
+            const scale = parseFloat(document.getElementById('hairstyle5Scale').value);
+            document.getElementById('hairstyle5ScaleValue').textContent = scale + 'x';
+            const config = {...baseFemaleConfig, head: {...baseFemaleConfig.head, hairStyle: 'ponytail5'}};
+            drawAvatar('hairstyle5Canvas', config, scale);
+        }
+
+        // 事件监听器
+        document.getElementById('hairstyle1Scale').addEventListener('input', drawHairstyle1);
+        document.getElementById('hairstyle2Scale').addEventListener('input', drawHairstyle2);
+        document.getElementById('hairstyle3Scale').addEventListener('input', drawHairstyle3);
+        document.getElementById('hairstyle4Scale').addEventListener('input', drawHairstyle4);
+        document.getElementById('hairstyle5Scale').addEventListener('input', drawHairstyle5);
+
+        // 动画循环
+        function animate() {
+            animationFrame += 0.1;
+            
+            // 重新绘制所有发型以显示动画效果
+            drawHairstyle1();
+            drawHairstyle2();
+            drawHairstyle3();
+            drawHairstyle4();
+            drawHairstyle5();
+            
+            requestAnimationFrame(animate);
+        }
+
+        // 初始化
+        window.onload = function() {
+            drawHairstyle1();
+            drawHairstyle2();
+            drawHairstyle3();
+            drawHairstyle4();
+            drawHairstyle5();
+            animate();
+        };
+    </script>
+</body>
+</html> 
